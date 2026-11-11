@@ -199,7 +199,7 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
     <div>
       <div class="sec" id="legendTitle">學習階段（點選只顯示該階段的小人）</div>
       <div class="stages" id="stages"></div>
-      <div class="rule" id="rule" hidden>穩定：8 週 5 次以上・建立中：2–4 次・需加強：1 次以下・未點名：點名系統裡找不到</div>
+      <div class="rule" id="rule" hidden>穩定：8 週 5 次以上・建立中：3–4 次・需加強：2 次以下・未點名：點名系統裡找不到</div>
     </div>
     <div class="ledger" id="ledger"></div>
     <div class="foot" id="foot"></div>
@@ -246,7 +246,7 @@ const appsLine = n => `<div class="apps">申請填表累計 <b>${n}</b> 份</div
 // ── 檢視：學習階段，或依點名系統最近 8 週的主日／小排／家聚會次數分級 ──
 const ATT_CATS = [
   { k: '穩定', a: '穩', col: '#2e9e5b', test: n => n >= 5 },
-  { k: '建立中', a: '建', col: '#e0a526', test: n => n >= 2 },
+  { k: '建立中', a: '建', col: '#e0a526', test: n => n >= 3 },
   { k: '需加強', a: '需', col: '#d1495b', test: n => true },
   { k: '未點名', a: '未', col: '#9aa5a0', test: null },
 ];
