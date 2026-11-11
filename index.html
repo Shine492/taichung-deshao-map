@@ -233,6 +233,33 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .leaflet-bar a.leaflet-disabled{color:var(--muted);opacity:.5;cursor:default}
 .leaflet-tooltip{position:absolute;padding:8px 10px;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:8px;white-space:nowrap;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.18)}
 .leaflet-control-attribution{display:none}
+.leaflet-popup{position:absolute;text-align:left;margin-bottom:20px}
+.leaflet-popup-content-wrapper{background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 20px rgba(0,0,0,.22);padding:1px}
+.leaflet-popup-content{margin:10px 30px 12px 12px;line-height:1.4;min-width:160px}
+.leaflet-popup-tip-container{width:40px;height:20px;position:absolute;left:50%;margin-left:-20px;overflow:hidden;pointer-events:none;margin-top:-1px}
+.leaflet-popup-tip{width:17px;height:17px;padding:1px;margin:-10px auto 0;transform:rotate(45deg);background:var(--panel);border:1px solid var(--line)}
+.leaflet-container a.leaflet-popup-close-button{position:absolute;top:4px;right:4px;width:24px;height:24px;font:18px/22px var(--font-body);text-align:center;color:var(--muted);text-decoration:none;border-radius:6px}
+.leaflet-container a.leaflet-popup-close-button:hover{background:var(--chip);color:var(--fg)}
+/* 固定說明框打開時，暫停游標說明框，避免兩張疊在一起 */
+.leaflet-interactive:focus{outline:none}
+.leaflet-marker-icon:not(.leaflet-interactive){pointer-events:none}
+/* 點區域後的小卡：桌機在地圖左下，手機在地圖底部（同位置的檢視標籤先藏起來） */
+.area-card{position:absolute;z-index:520;left:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));width:270px;max-width:calc(100% - 24px);
+  background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.22);padding:10px 12px 12px}
+.area-card[hidden]{display:none}
+.ac-x{position:absolute;top:4px;right:4px;width:28px;height:28px;border:0;border-radius:8px;background:none;color:var(--muted);font:20px/1 var(--font-body);cursor:pointer}
+.ac-x:hover{background:var(--chip);color:var(--fg)}
+.ac-k{font-size:.74rem;color:var(--muted)}
+.ac-h{font-weight:700;font-size:1rem;margin:1px 28px 2px 0}
+.ac-n{font-size:.82rem;color:var(--muted)}
+.ac-n b{color:var(--fg);font-variant-numeric:tabular-nums}
+.area-card .tip-st{margin-top:6px}
+@media (max-width:760px){.area-card{left:12px;right:12px;width:auto}.app.carding .vchip{display:none}}
+@media (hover:none){.app.carding .leaflet-tooltip-pane{display:none}}
+.tip-hint{font-size:.72rem;color:var(--muted);margin-top:6px}
+.tip-go{font:inherit;font-size:.85rem;font-weight:700;display:block;width:100%;margin-top:10px;padding:7px 10px;border:0;border-radius:8px;background:var(--accent);color:var(--panel);cursor:pointer}
+.tip-go:hover{filter:brightness(1.08)}
+.tip-go:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 @media (prefers-reduced-motion: reduce){.leaflet-zoom-anim .leaflet-zoom-animated{transition:none}}
 </style>
 
@@ -264,6 +291,7 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
     <div id="map" aria-label="台中市得少分布地圖"></div>
     <div class="vframe"></div>
     <div class="vchip" id="vchip" hidden></div>
+    <div class="area-card" id="areaCard" hidden role="dialog" aria-label="所選區域"></div>
     <div class="mode" role="group" aria-label="顯示層級">
       <button id="mAuto" class="on">自動</button><button id="mCare">照顧區</button><button id="mDq">大區</button>
     </div>
@@ -355,12 +383,54 @@ const viewNote = () => view === 'stage' ? '' : `<div class="k" style="margin-top
 function tipCare(c) {
   const rows = `<li class="hd"><span>大區</span><span>得少／填表</span></li>` + c.dqs.map(n => { const d = DATA.dq.find(x => x.n === n);
     return `<li><span>${n} 大區</span><span>${d ? d.count : 0}／${d ? d.apps : 0}</span></li>`; }).join('');
-  return `<div class="tip"><div class="k">照顧區</div><h3>${c.name}</h3><div class="big">${c.count} <span class="k">位得少</span></div>${viewNote()}${chipsList(careCounts(c))}${appsLine(c.apps)}<ul>${rows}</ul></div>`;
+  return `<div class="tip"><div class="k">照顧區</div><h3>${c.name}</h3><div class="big">${c.count} <span class="k">位得少</span></div>${viewNote()}${chipsList(careCounts(c))}${appsLine(c.apps)}<ul>${rows}</ul>${tipEnd(`hist-${c.name}`, `${c.name}照顧區`)}</div>`;
 }
 function tipDq(d) {
   const xq = Object.entries(d.xq).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<li><span>${k}</span><span>${v}</span></li>`).join('');
-  return `<div class="tip"><div class="k">${d.care || '—'} 照顧區</div><h3>臺中 ${d.n} 大區</h3><div class="big">${d.count} <span class="k">位得少</span></div>${d.count ? viewNote() + chipsList(dqCounts(d.n)) : ''}${appsLine(d.apps)}${xq ? `<ul>${xq}</ul>` : ''}</div>`;
+  return `<div class="tip"><div class="k">${d.care || '—'} 照顧區</div><h3>臺中 ${d.n} 大區</h3><div class="big">${d.count} <span class="k">位得少</span></div>${d.count ? viewNote() + chipsList(dqCounts(d.n)) : ''}${appsLine(d.apps)}${xq ? `<ul>${xq}</ul>` : ''}${tipEnd(`hist-${d.n}`, `${d.n} 大區`)}</div>`;
 }
+// 游標說明框只加一行提示；按鈕放在點一下後出現的小卡上
+const tipEnd = (key, name) => !DATA.hist ? '' : `<div class="tip-hint">點一下可看${name}歷年趨勢</div>`;
+// 點區域：照舊飛過去放大，同時在地圖下方固定一張小卡（不跳頁、不會跑出畫面）
+const areaCard = document.getElementById('areaCard');
+let cardFor = null;
+function showCard(o) {
+  cardFor = o;
+  const chips = o.count ? chipsList(o.counts()) : '';
+  areaCard.innerHTML = `<button class="ac-x" aria-label="關閉">×</button>
+    <div class="ac-k">${o.kicker}</div><div class="ac-h">${o.title}</div>
+    <div class="ac-n"><b>${o.count}</b> 位得少・申請填表累計 <b>${o.apps}</b> 份</div>${chips}
+    ${DATA.hist ? `<button class="tip-go" data-hist="${o.key}">看${o.name}歷年趨勢 ›</button>` : ''}`;
+  areaCard.hidden = false;
+  document.querySelector('.app').classList.add('carding');
+  areaCard.querySelector('.ac-x').onclick = hideCard;
+  const go = areaCard.querySelector('[data-hist]'); if (go) go.onclick = () => window.openHist?.(go.dataset.hist);
+}
+function hideCard() { areaCard.hidden = true; cardFor = null; document.querySelector('.app').classList.remove('carding'); }
+// 用點擊的經緯度判斷點在哪一區（游標移入時區塊會被移到最上層，地圖本身的區塊點擊不可靠）
+function inRing(x, y, r) { let k = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+  const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k; } return k; }
+const inPoly = (x, y, p) => inRing(x, y, p[0]) && !p.slice(1).some(h => inRing(x, y, h));
+const inGeom = (ll, g) => (g.type === 'Polygon' ? [g.coordinates] : g.coordinates).some(p => inPoly(ll.lng, ll.lat, p));
+function areaAt(ll) {
+  if (map.hasLayer(dqLayer)) { const d = DATA.dq.find(d => inGeom(ll, d.geom)); return d && dqShapes[d.n]; }
+  if (map.hasLayer(careLayer)) { const c = DATA.care.find(c => inGeom(ll, c.geom)); return c && careShapes[c.name]; }
+}
+// 按下、放開在同一點附近（沒有拖曳）就算點一下；地圖的 click 事件只當備援，避免重複
+let downAt = null, lastTap = { t: 0, p: L.point(-99, -99) };
+map.on('mousedown', e => { downAt = { p: e.containerPoint, t: Date.now() }; });
+map.on('mouseup click', e => {
+  if (e.type === 'mouseup' && !(downAt && Date.now() - downAt.t < 700 && e.containerPoint.distanceTo(downAt.p) < 6)) { downAt = null; return; }
+  downAt = null;
+  if (Date.now() - lastTap.t < 500 && e.containerPoint.distanceTo(lastTap.p) < 6) return;   // 同一下的 mouseup + click 只算一次
+  lastTap = { t: Date.now(), p: e.containerPoint };
+  const shp = areaAt(e.latlng);
+  if (!shp) { hideCard(); return; }   // 點到地圖空白處：關掉小卡
+  shp.closeTooltip();
+  showCard(shp._card());
+  shp._fly();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('hist').hidden) hideCard(); });
 function badgeIcon(count, label, big, extra = '') {
   const cls = 'badge' + (big ? ' big' : '') + (count === 0 ? ' zero' : '');
   return L.divIcon({ className: '', iconSize: null,
@@ -376,7 +446,10 @@ DATA.care.forEach(c => {
     .bindTooltip(() => tipCare(c), { sticky: true, direction: 'top', offset: [0, -8] })
     .on('mouseover', e => e.target.setStyle({ fillOpacity: .5, weight: 3 }))
     .on('mouseout', e => e.target.setStyle({ fillOpacity: .28, weight: 2 }))
-    .on('click', () => map.flyToBounds(shp.getBounds(), { padding: [30, 30], duration: .6 }));
+    ;
+  shp._card = () => ({ kicker: '照顧區', title: `${c.name}照顧區`, name: `${c.name}照顧區`, key: `hist-${c.name}`,
+    count: c.count, apps: c.apps, counts: () => careCounts(c) });
+  shp._fly = () => map.flyToBounds(shp.getBounds(), { padding: [30, 30], duration: .6 });
   careShapes[c.name] = shp; careLayer.addLayer(shp);
   const b = badge(c.label, c.count, { care: c.name, text: c.name }, true, chipsRow(careCounts(c)));
   careBadgeOf[c.name] = b; careBadges.addLayer(b);
@@ -389,7 +462,10 @@ DATA.dq.forEach(d => {
     .bindTooltip(() => tipDq(d), { sticky: true, direction: 'top', offset: [0, -8] })
     .on('mouseover', () => { popDq(d.n, true); greet(d.n, true); })
     .on('mouseout', () => { popDq(d.n, false); greet(d.n, false); })
-    .on('click', () => map.flyToBounds(shp.getBounds(), { padding: [40, 40], duration: .6, maxZoom: 14 }));
+    ;
+  shp._card = () => ({ kicker: `${d.care || '—'} 照顧區`, title: `臺中 ${d.n} 大區`, name: `${d.n} 大區`, key: `hist-${d.n}`,
+    count: d.count, apps: d.apps, counts: () => dqCounts(d.n) });
+  shp._fly = () => map.flyToBounds(shp.getBounds(), { padding: [40, 40], duration: .6, maxZoom: 14 });
   shp._op = op; shp._stroke = col;
   dqShapes[d.n] = shp; dqLayer.addLayer(shp);
   const b = badge(d.label, d.count, { care: d.care, text: d.n + ' 大區' }, false, chipsRow(dqCounts(d.n)));
@@ -524,6 +600,7 @@ map.on('zoomend', () => { const t = tierOf(map.getZoom()); if (t === curTier) re
 // 總選項：切換整張圖
 function setView(v) {
   view = v; catOn = 'all';
+  if (cardFor) showCard(cardFor);   // 小卡上的分類數字跟著檢視更新
   document.querySelectorAll('#views button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
   kids.forEach(m => { m.setIcon(kidIcon(m._s)); applyFilter(m); });
   DATA.dq.forEach(d => dqBadgeOf[d.n].setIcon(badgeIcon(d.count, { care: d.care, text: d.n + ' 大區' }, false, chipsRow(dqCounts(d.n)))));
@@ -762,7 +839,10 @@ document.getElementById('foot').innerHTML =
   $('histOpen').onclick = () => open();
   $('histClose').onclick = close;
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('hist').hidden) close(); });
-  const m = decodeURIComponent(location.hash).match(/^#hist(?:-(.+))?$/);
-  if (m) open(!m[1] ? null : /^\d+$/.test(m[1]) ? { level: 'dq', dq: +m[1] } : { level: 'care', care: m[1] });
+  const parse = k => { const m = decodeURIComponent(k || '').replace(/^#/, '').match(/^hist(?:-(.+))?$/);
+    return !m ? undefined : !m[1] ? null : /^\d+$/.test(m[1]) ? { level: 'dq', dq: +m[1] } : { level: 'care', care: m[1] }; };
+  window.openHist = key => { map.closePopup(); open(parse(key) || null); };
+  const s0 = parse(location.hash);
+  if (s0 !== undefined) open(s0);
 })();
 </script>
