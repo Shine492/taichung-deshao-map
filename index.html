@@ -187,7 +187,7 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
       <div class="sub">台中專案內得榮少年・各照顧區與大區人數<br>資料：<span id="rosterName"></span></div>
     </div>
     <div class="total"><b id="total">0</b><span>位得少・<span id="zoneCount"></span> 個照顧區</span></div>
-    <div class="total-apps">2023 年起申請填表累計 <b id="appsTotal">0</b> 份<span id="onlineTotal"></span></div>
+    <div class="total-apps">2023 年起申請填表累計 <b id="appsTotal">0</b> 份</div>
     <div class="hint">游標移到大區上看人數。地圖縮小時顯示照顧區合計，放大後顯示各大區與每位得少的位置點。點左側照顧區或大區可直接飛過去。</div>
     <div id="viewsWrap">
       <div class="sec">檢視</div>
@@ -242,8 +242,7 @@ const maxDq = Math.max(...DATA.dq.map(d => d.count));
 const careLayer = L.layerGroup(), dqLayer = L.layerGroup(), dotLayer = L.layerGroup(), careBadges = L.layerGroup(), dqBadges = L.layerGroup();
 const careShapes = {}, dqShapes = {}, dqBadgeOf = {}, careBadgeOf = {};
 
-const onl = o => o ? `（含線上報名 ${o}）` : '';
-const appsLine = (n, o) => `<div class="apps">申請填表累計 <b>${n}</b> 份${onl(o)}</div>`;
+const appsLine = n => `<div class="apps">申請填表累計 <b>${n}</b> 份</div>`;
 // ── 檢視：學習階段，或依點名系統最近 8 週的主日／小排／家聚會次數分級 ──
 const ATT_CATS = [
   { k: '穩定', a: '穩', col: '#2e9e5b', test: n => n >= 5 },
@@ -282,11 +281,11 @@ const viewNote = () => view === 'stage' ? '' : `<div class="k" style="margin-top
 function tipCare(c) {
   const rows = `<li class="hd"><span>大區</span><span>得少／填表</span></li>` + c.dqs.map(n => { const d = DATA.dq.find(x => x.n === n);
     return `<li><span>${n} 大區</span><span>${d ? d.count : 0}／${d ? d.apps : 0}</span></li>`; }).join('');
-  return `<div class="tip"><div class="k">照顧區</div><h3>${c.name}</h3><div class="big">${c.count} <span class="k">位得少</span></div>${viewNote()}${chipsList(careCounts(c))}${appsLine(c.apps, c.online)}<ul>${rows}</ul></div>`;
+  return `<div class="tip"><div class="k">照顧區</div><h3>${c.name}</h3><div class="big">${c.count} <span class="k">位得少</span></div>${viewNote()}${chipsList(careCounts(c))}${appsLine(c.apps)}<ul>${rows}</ul></div>`;
 }
 function tipDq(d) {
   const xq = Object.entries(d.xq).sort((a, b) => b[1] - a[1]).map(([k, v]) => `<li><span>${k}</span><span>${v}</span></li>`).join('');
-  return `<div class="tip"><div class="k">${d.care || '—'} 照顧區</div><h3>臺中 ${d.n} 大區</h3><div class="big">${d.count} <span class="k">位得少</span></div>${d.count ? viewNote() + chipsList(dqCounts(d.n)) : ''}${appsLine(d.apps, d.online)}${xq ? `<ul>${xq}</ul>` : ''}</div>`;
+  return `<div class="tip"><div class="k">${d.care || '—'} 照顧區</div><h3>臺中 ${d.n} 大區</h3><div class="big">${d.count} <span class="k">位得少</span></div>${d.count ? viewNote() + chipsList(dqCounts(d.n)) : ''}${appsLine(d.apps)}${xq ? `<ul>${xq}</ul>` : ''}</div>`;
 }
 function badgeIcon(count, label, big, extra = '') {
   const cls = 'badge' + (big ? ' big' : '') + (count === 0 ? ' zero' : '');
@@ -512,9 +511,7 @@ Object.entries(modeBtns).forEach(([k, b]) => b.addEventListener('click', () => {
 // ledger
 document.getElementById('total').textContent = DATA.total;
 document.getElementById('zoneCount').textContent = DATA.care.length;
-document.getElementById('appsTotal').textContent = DATA.appsTotal;
-document.getElementById('onlineTotal').textContent = onl(DATA.onlineTotal);
-document.getElementById('rosterName').textContent = DATA.rosterName;
+document.getElementById('appsTotal').textContent = DATA.appsTotal;document.getElementById('rosterName').textContent = DATA.rosterName;
 const maxCare = Math.max(...DATA.care.map(c => c.count));
 const ledger = document.getElementById('ledger');
 [...DATA.care].sort((a, b) => b.count - a.count).forEach(c => {
@@ -525,7 +522,7 @@ const ledger = document.getElementById('ledger');
     return `<button data-dq="${n}" class="${k ? '' : 'zero'}" aria-label="${n} 大區 ${k} 位">${n}大區 · ${k}</button>`; }).join('');
   el.innerHTML = `<div class="zone-head"><span class="sw" style="background:${col}"></span>${c.name}照顧區<span class="n">${c.count}</span></div>
     <div class="bar"><i style="width:${(c.count / maxCare * 100).toFixed(1)}%;background:${col}"></i></div>
-    <div class="zone-apps">申請填表累計 ${c.apps} 份${onl(c.online)}</div><div class="dqs">${chips}</div>`;
+    <div class="zone-apps">申請填表累計 ${c.apps} 份</div><div class="dqs">${chips}</div>`;
   const go = () => map.flyToBounds(careShapes[c.name].getBounds(), { padding: [30, 30], duration: .6 });
   el.addEventListener('click', e => {
     const b = e.target.closest('button[data-dq]');
@@ -545,6 +542,6 @@ document.getElementById('foot').innerHTML =
   (out ? `<br>不在台中範圍、未列入地圖：${out}。` : '') +
   `<br>學習階段：取自「111年至115年台中得少(含結案)」統計表中各人最新的年級（五專一至三年級列為高中）。` +
   (DATA.attMeta ? `<br>主日／小排／家聚會：取自「${DATA.attMeta.source}」最近 8 週（${DATA.attMeta.weeks.join(' 至 ')}），依姓名比對；家聚會為同週有出訪或受訪算 1 次。` : '') +
-  `<br>申請填表累計：2023 年起「得榮少年教育專案報名表（台中）」回覆中已分派大區的筆數，加上「得少線上報名」中已分派大區、且未與前者重複的筆數，含未進入專案者（${DATA.appsAsOf} 讀取）。線上報名已進入專案的得少都已在最新名單內，計入各區得少人數。` +
+  `<br>申請填表累計：2023 年起「得榮少年教育專案報名表（台中）」及「得少線上報名」中已分派大區的筆數（同一位不重複計算），含未進入專案者（${DATA.appsAsOf} 讀取）。` +
   `<br>區界取自「台中市召會各大區區域與會所分布圖」。`;
 </script>
