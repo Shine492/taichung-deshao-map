@@ -175,6 +175,23 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .hist-link:hover { background: var(--accent); color: var(--panel); }
 .hist { position: fixed; inset: 0; z-index: 3000; background: var(--bg); overflow-y: auto; }
 .hist[hidden] { display: none; }
+/* 現有得少分析 */
+.nw-head { font-size: 1rem; line-height: 1.7; }
+.nw-head .big { font-family: var(--font-display); font-weight: 900; font-size: 1.25rem; }
+.nw-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.nw-c { border-top: 5px solid var(--z); }
+.nw-t { display: flex; align-items: baseline; gap: 8px; }
+.nw-t h3 { font-family: var(--font-display); font-weight: 900; font-size: 1.3rem; margin: 0; }
+.nw-pill { margin-left: auto; font-size: .8rem; font-weight: 700; color: #fff; background: var(--z); border-radius: 999px; padding: 2px 10px; white-space: nowrap; }
+.nw-pct { font-size: .85rem; color: var(--muted); margin-top: 2px; }
+.nw-pct b { color: var(--fg); font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+.nw-nums { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin-top: 8px; text-align: center; }
+.nw-nums b { display: block; font-size: 1.15rem; font-variant-numeric: tabular-nums; }
+.nw-nums span { font-size: .7rem; color: var(--muted); }
+.nw-tips { margin: 12px 0 0; padding: 10px 12px 10px 28px; background: var(--chip); border-radius: 10px; font-size: .86rem; line-height: 1.65; }
+.nw-tips li + li { margin-top: 4px; }
+.nw-note { font-size: .78rem; color: var(--muted); margin-top: 14px; line-height: 1.7; }
+@media (max-width: 760px) { .nw-grid { grid-template-columns: 1fr; } }
 .h-in { max-width: 980px; margin: 0 auto; padding: max(16px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 40px max(16px, env(safe-area-inset-left, 0px)); }
 .h-top { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .h-top h2 { font-family: var(--font-display); font-weight: 900; font-size: 1.5rem; margin: 0; text-wrap: balance; }
@@ -278,6 +295,15 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .tip-go{font:inherit;font-size:.85rem;font-weight:700;display:block;width:100%;margin-top:10px;padding:7px 10px;border:0;border-radius:8px;background:var(--accent);color:var(--panel);cursor:pointer}
 .tip-go:hover{filter:brightness(1.08)}
 .tip-go:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+/* 小卡上的兩個大選項 */
+.ac-opts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.ac-opt{font:inherit;text-align:left;border:1.5px solid var(--line);border-radius:10px;background:var(--panel);color:var(--fg);padding:8px 10px;cursor:pointer}
+.ac-opt b{display:block;font-size:.95rem}
+.ac-opt span{display:block;font-size:.7rem;color:var(--muted);margin-top:1px}
+.ac-opt.get{border-color:var(--c-ent)} .ac-opt.get b{color:var(--c-ent)}
+.ac-opt.now{border-color:var(--accent)} .ac-opt.now b{color:var(--accent)}
+.ac-opt:hover{background:var(--chip)}
+.ac-opt:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 @media (prefers-reduced-motion: reduce){.leaflet-zoom-anim .leaflet-zoom-animated{transition:none}}
 </style>
 
@@ -316,9 +342,18 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
   </div>
 </div>
 
-<section class="hist" id="hist" hidden aria-label="申請與進入專案歷年比例">
+<section class="hist" id="now" hidden aria-label="現有得少分析">
   <div class="h-in">
-    <div class="h-top"><button class="h-back" id="histClose">‹ 回地圖</button><h2>申請與進入專案・歷年比例</h2></div>
+    <div class="h-top"><button class="h-back" id="nowClose">‹ 回地圖</button><h2 id="nowTitle">現有得少分析</h2></div>
+    <div class="h-card nw-head" id="nowHead"></div>
+    <div class="nw-grid" id="nowGrid"></div>
+    <div class="nw-note" id="nowNote"></div>
+  </div>
+</section>
+
+<section class="hist" id="hist" hidden aria-label="得著得少分析：申請與進入專案歷年比例">
+  <div class="h-in">
+    <div class="h-top"><button class="h-back" id="histClose">‹ 回地圖</button><h2>得著得少分析・申請與進入專案</h2></div>
     <nav class="crumb" id="hCrumb" aria-label="範圍"></nav>
     <div class="h-card">
       <div class="h-kpis" id="hKpi"></div>
@@ -409,7 +444,7 @@ function tipDq(d) {
   return `<div class="tip"><div class="k">${d.care || '—'} 照顧區</div><h3>臺中 ${d.n} 大區</h3><div class="big">${d.count} <span class="k">位得少</span></div>${d.count ? viewNote() + chipsList(dqCounts(d.n)) : ''}${appsLine(d.apps)}${xq ? `<ul>${xq}</ul>` : ''}${tipEnd(`hist-${d.n}`, `${d.n} 大區`)}</div>`;
 }
 // 游標說明框只加一行提示；按鈕放在點一下後出現的小卡上
-const tipEnd = (key, name) => !DATA.hist ? '' : `<div class="tip-hint">點一下可看${name}歷年趨勢</div>`;
+const tipEnd = (key, name) => !DATA.hist ? '' : `<div class="tip-hint">點一下看${name}的得著／現有得少分析</div>`;
 // 點區域：照舊飛過去放大，同時在地圖下方固定一張小卡（不跳頁、不會跑出畫面）
 const areaCard = document.getElementById('areaCard');
 let cardFor = null;
@@ -419,12 +454,66 @@ function showCard(o) {
   areaCard.innerHTML = `<button class="ac-x" aria-label="關閉">×</button>
     <div class="ac-k">${o.kicker}</div><div class="ac-h">${o.title}</div>
     <div class="ac-n"><b>${o.count}</b> 位得少・申請填表累計 <b>${o.apps}</b> 份</div>${chips}
-    ${DATA.hist ? `<button class="tip-go" data-hist="${o.key}">看${o.name}歷年趨勢 ›</button>` : ''}`;
+    <div class="ac-opts">
+      ${DATA.hist ? `<button class="ac-opt get" data-hist="${o.key}"><b>得著得少分析 ›</b><span>申請 → 進入專案</span></button>` : ''}
+      ${DATA.attMeta ? `<button class="ac-opt now" data-now><b>現有得少分析 ›</b><span>主日・小排・家聚會</span></button>` : ''}
+    </div>`;
   areaCard.hidden = false;
   document.querySelector('.app').classList.add('carding');
   areaCard.querySelector('.ac-x').onclick = hideCard;
   const go = areaCard.querySelector('[data-hist]'); if (go) go.onclick = () => window.openHist?.(go.dataset.hist);
+  const nw = areaCard.querySelector('[data-now]'); if (nw) nw.onclick = () => openNow(o);
 }
+
+// ── 現有得少分析：這一區得少的主日／小排／家聚會出席狀況與建議 ──
+const MEET = ['主日', '小排', '家聚會'];
+function attOf(filter, idx) {
+  const o = { 穩定: 0, 建立中: 0, 需加強: 0, 未點名: 0 };
+  DATA.students.forEach(s => { if (!filter(s)) return; const v = s.att ? s.att[idx] : null;
+    o[v == null ? '未點名' : ATT_CATS.find(c => c.test && c.test(v)).k]++; });
+  return o;
+}
+const ADVICE = {
+  主日: { 危急: ['先挑 2–3 位「需加強」的得少，主日前一天個別邀約，需要的話安排接送。', '主日後留下來一起用餐、聊天，讓他們有歸屬感。'],
+          須注意: ['「建立中」的得少再多來幾次就穩定了：每週提醒，主日一起坐。', '缺席時當週就關心，不要等到隔好幾週。'],
+          安全: ['維持現在的節奏。', '鼓勵穩定的得少邀同學、兄弟姊妹一起來主日。'] },
+  小排: { 危急: ['先固定時間、地點，由同一位服事者帶；2–3 位就可以開始。', '從主日有來的得少先邀，主日後直接約下一次小排。'],
+          須注意: ['小排後個別關心沒來的得少；內容輕鬆、有互動。', '讓「建立中」的得少負責一個小部分（帶詩歌、準備點心），更有參與感。'],
+          安全: ['讓得少輪流帶禱告、分享。', '開始帶新朋友來小排。'] },
+  家聚會: { 危急: ['服事者先到得少家中拜訪、認識父母，從一個月一次開始。', '可以簡單：一起用餐、讀一段經文、為家人禱告。'],
+          須注意: ['排定固定的拜訪週期（例如隔週一次），並邀父母一起參與。', '先從「建立中」的家開始，比較容易穩定下來。'],
+          安全: ['邀請家長、同學一起來，讓這個家成為據點。', '可以由這個家接待附近其他得少。'] },
+};
+function openNow(o) {
+  const filter = o.filter, w = DATA.attMeta.weeks.map(x => x.slice(5).replace('-', '/').replace(/^0/, ''));
+  const rows = MEET.map((m, i) => { const c = attOf(filter, i), known = c.穩定 + c.建立中 + c.需加強;
+    return { m, c, known, r: known ? c.穩定 / known : null, st: zoneStatus(c) }; });
+  document.getElementById('nowTitle').textContent = `${o.name}・現有得少分析`;
+  const ranked = rows.filter(x => x.st).sort((a, b) => a.r - b.r), worst = ranked[0];
+  let head = `<div><span class="big">${o.title}</span>　目前 <b>${o.count}</b> 位得少・最近 8 週（${w[0]}–${w[1]}）</div>`;
+  if (!o.count) head += `<div>這一區目前還沒有得少，先看「得著得少分析」，多發宣傳單張、邀人填表。</div>`;
+  else if (!worst) head += `<div>這一區的得少還沒有點名紀錄，請先確認點名系統有登記。</div>`;
+  else if (worst.st === '安全') head += `<div>三項聚會都穩定 👍 繼續保持，並鼓勵得少帶同伴來。</div>`;
+  else head += `<div>最需要加強：<b style="color:${ZONE[worst.st]}">${worst.m}</b>（穩定 ${worst.c.穩定} / ${worst.known} 位）。建議先從這一項開始。</div>`;
+  document.getElementById('nowHead').innerHTML = head;
+  document.getElementById('nowGrid').innerHTML = !o.count ? '' : rows.map(x => {
+    const z = x.st ? ZONE[x.st] : '#9aa5a0', tot = o.count || 1;
+    const tips = x.st ? [...ADVICE[x.m][x.st]] : ['還沒有點名紀錄，請先確認點名。'];
+    if (x.st && x.st !== '安全' && x.c.建立中) tips.push(`優先關心「建立中」的 ${x.c.建立中} 位，他們最快能變穩定。`);
+    if (x.c.未點名) tips.push(`有 ${x.c.未點名} 位沒有點名紀錄，請確認是否漏點。`);
+    return `<div class="h-card nw-c" style="--z:${z}">
+      <div class="nw-t"><h3>${x.m}</h3><span class="nw-pill">${x.st || '無資料'}</span></div>
+      <div class="nw-pct">穩定比例 <b>${x.r == null ? '—' : Math.round(x.r * 100) + '%'}</b></div>
+      <div class="vc-bar">${ATT_CATS.map(c => `<i style="width:${(x.c[c.k] / tot * 100).toFixed(1)}%;background:${c.col}"></i>`).join('')}</div>
+      <div class="nw-nums">${ATT_CATS.map(c => `<div><b style="color:${c.col}">${x.c[c.k]}</b><span>${c.k}</span></div>`).join('')}</div>
+      <ul class="nw-tips">${tips.map(t => `<li>${t}</li>`).join('')}</ul></div>`; }).join('');
+  document.getElementById('nowNote').innerHTML = `穩定：8 週 5 次以上・建立中：3–4 次・需加強：2 次以下。穩定比例 ≥50% 安全、25–49% 須注意、&lt;25% 危急（不含未點名）。資料來源：${DATA.attMeta.source}。`;
+  const sec = document.getElementById('now'); sec.hidden = false; sec.scrollTo({ top: 0 }); document.body.style.overflow = 'hidden';
+  document.getElementById('nowClose').focus();
+}
+function closeNow() { document.getElementById('now').hidden = true; document.body.style.overflow = ''; map.invalidateSize(); }
+document.getElementById('nowClose').onclick = closeNow;
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !document.getElementById('now').hidden) closeNow(); });
 function hideCard() { areaCard.hidden = true; cardFor = null; if (typeof selectShape === 'function') selectShape(null); document.querySelector('.app').classList.remove('carding'); }
 // 用點擊的經緯度判斷點在哪一區（游標移入時區塊會被移到最上層，地圖本身的區塊點擊不可靠）
 function inRing(x, y, r) { let k = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
@@ -458,7 +547,7 @@ map.on('mouseup click', e => {
   selectShape(shp);
   shp._fly();
 });
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('hist').hidden) hideCard(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('hist').hidden && document.getElementById('now').hidden) hideCard(); });
 function badgeIcon(count, label, big, extra = '', col = null) {
   const cls = 'badge' + (big ? ' big' : '') + (count === 0 ? ' zero' : '');
   // 出席檢視時圓圈用狀態色（綠／黃／紅），沒有點名資料的用白底
@@ -479,7 +568,7 @@ DATA.care.forEach(c => {
     .on('mouseout', e => e.target.setStyle({ fillOpacity: .28, weight: 2 }))
     ;
   shp._card = () => ({ kicker: '照顧區', title: `${c.name}照顧區`, name: `${c.name}照顧區`, key: `hist-${c.name}`,
-    count: c.count, apps: c.apps, counts: () => careCounts(c) });
+    count: c.count, apps: c.apps, counts: () => careCounts(c), filter: s => c.dqs.includes(s.dq) });
   shp._fly = () => map.flyToBounds(shp.getBounds(), { padding: [30, 30], duration: .6 });
   careShapes[c.name] = shp; careLayer.addLayer(shp);
   const b = badge(c.label, c.count, { care: c.name, text: c.name }, true, '');
@@ -495,7 +584,7 @@ DATA.dq.forEach(d => {
     .on('mouseout', () => { popDq(d.n, false); greet(d.n, false); })
     ;
   shp._card = () => ({ kicker: `${d.care || '—'} 照顧區`, title: `臺中 ${d.n} 大區`, name: `${d.n} 大區`, key: `hist-${d.n}`,
-    count: d.count, apps: d.apps, counts: () => dqCounts(d.n) });
+    count: d.count, apps: d.apps, counts: () => dqCounts(d.n), filter: s => s.dq === d.n });
   shp._fly = () => map.flyToBounds(shp.getBounds(), { padding: [40, 40], duration: .6, maxZoom: 14 });
   shp._op = op; shp._stroke = col;
   dqShapes[d.n] = shp; dqLayer.addLayer(shp);
