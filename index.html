@@ -284,6 +284,8 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .ac-x{position:absolute;top:4px;right:4px;width:28px;height:28px;border:0;border-radius:8px;background:none;color:var(--muted);font:20px/1 var(--font-body);cursor:pointer}
 .ac-x:hover{background:var(--chip);color:var(--fg)}
 .ac-k{font-size:.74rem;color:var(--muted)}
+.ac-up{font:inherit;font-size:.74rem;border:0;background:none;padding:0;color:var(--accent);font-weight:700;cursor:pointer;text-align:left}
+.ac-up:hover{text-decoration:underline}
 .ac-h{font-family:var(--font-display);font-weight:900;font-size:1.35rem;margin:1px 28px 2px 0}
 .ac-n{font-size:.82rem;color:var(--muted)}
 .ac-n b{color:var(--fg);font-variant-numeric:tabular-nums}
@@ -452,7 +454,7 @@ function showCard(o) {
   cardFor = o;
   const chips = o.count ? chipsList(o.counts()) : '';
   areaCard.innerHTML = `<button class="ac-x" aria-label="關閉">×</button>
-    <div class="ac-k">${o.kicker}</div><div class="ac-h">${o.title}</div>
+    ${o.up && careShapes[o.up] ? `<button class="ac-k ac-up" data-up>${o.kicker}・看整個照顧區 ›</button>` : `<div class="ac-k">${o.kicker}</div>`}<div class="ac-h">${o.title}</div>
     <div class="ac-n"><b>${o.count}</b> 位得少・申請填表累計 <b>${o.apps}</b> 份</div>${chips}
     <div class="ac-opts">
       ${DATA.hist ? `<button class="ac-opt get" data-hist="${o.key}"><b>得著得少分析 ›</b><span>申請 → 進入專案</span></button>` : ''}
@@ -463,6 +465,7 @@ function showCard(o) {
   areaCard.querySelector('.ac-x').onclick = hideCard;
   const go = areaCard.querySelector('[data-hist]'); if (go) go.onclick = () => window.openHist?.(go.dataset.hist);
   const nw = areaCard.querySelector('[data-now]'); if (nw) nw.onclick = () => openNow(o);
+  const up = areaCard.querySelector('[data-up]'); if (up) up.onclick = () => { const s = careShapes[o.up]; showCard(s._card()); selectShape(s); s._fly(); };
 }
 
 // ── 現有得少分析：這一區得少的主日／小排／家聚會出席狀況與建議 ──
@@ -584,7 +587,7 @@ DATA.dq.forEach(d => {
     .on('mouseout', () => { popDq(d.n, false); greet(d.n, false); })
     ;
   shp._card = () => ({ kicker: `${d.care || '—'} 照顧區`, title: `臺中 ${d.n} 大區`, name: `${d.n} 大區`, key: `hist-${d.n}`,
-    count: d.count, apps: d.apps, counts: () => dqCounts(d.n), filter: s => s.dq === d.n });
+    count: d.count, apps: d.apps, counts: () => dqCounts(d.n), filter: s => s.dq === d.n, up: d.care });
   shp._fly = () => map.flyToBounds(shp.getBounds(), { padding: [40, 40], duration: .6, maxZoom: 14 });
   shp._op = op; shp._stroke = col;
   dqShapes[d.n] = shp; dqLayer.addLayer(shp);
@@ -866,11 +869,12 @@ const ledger = document.getElementById('ledger');
   el.innerHTML = `<div class="zone-head"><span class="sw" style="background:${col}"></span>${c.name}照顧區<span class="n">${c.count}</span></div>
     <div class="bar"><i style="width:${(c.count / maxCare * 100).toFixed(1)}%;background:${col}"></i></div>
     <div class="zone-apps">申請填表累計 ${c.apps} 份</div><div class="dqs">${chips}</div>`;
-  const go = () => map.flyToBounds(careShapes[c.name].getBounds(), { padding: [30, 30], duration: .6 });
+  // 左側清單點照顧區或大區：跟點地圖一樣，飛過去並打開有兩個分析選項的小卡
+  const pick = shp => { closeOpenTip(); showCard(shp._card()); selectShape(shp); shp._fly(); };
+  const go = () => pick(careShapes[c.name]);
   el.addEventListener('click', e => {
     const b = e.target.closest('button[data-dq]');
-    if (b) { const shp = dqShapes[+b.dataset.dq]; map.flyToBounds(shp.getBounds(), { padding: [40, 40], duration: .6, maxZoom: 14 });
-      shp.once ? setTimeout(() => shp.eachLayer(l => l.openTooltip(l.getBounds().getCenter())), 700) : 0; return; }
+    if (b) { pick(dqShapes[+b.dataset.dq]); return; }
     go();
   });
   el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
