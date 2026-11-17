@@ -424,6 +424,14 @@ function areaAt(ll) {
   if (map.hasLayer(careLayer)) { const c = DATA.care.find(c => inGeom(ll, c.geom)); return c && careShapes[c.name]; }
 }
 // 按下、放開在同一點附近（沒有拖曳）就算點一下；地圖的 click 事件只當備援，避免重複
+// 同一時間只留一個游標說明框：新的打開就關掉舊的；游標移到空白處或離開地圖也關掉
+// （區塊浮起時會被移到最上層，瀏覽器偶爾漏掉「離開」事件，說明框就會一直留著）
+let openTip = null;
+const closeOpenTip = () => { const t = openTip; openTip = null; if (!t) return; const src = t._source; if (src && src.closeTooltip) src.closeTooltip(); else map.closeTooltip(t); };
+map.on('tooltipopen', e => { if (openTip && openTip !== e.tooltip) closeOpenTip(); openTip = e.tooltip; });
+map.on('tooltipclose', e => { if (openTip === e.tooltip) openTip = null; });
+map.on('mousemove', e => { const t = e.originalEvent.target; if (openTip && !(t && t.closest && t.closest('.leaflet-interactive'))) closeOpenTip(); });
+map.getContainer().addEventListener('mouseleave', closeOpenTip);
 let downAt = null, lastTap = { t: 0, p: L.point(-99, -99) };
 map.on('mousedown', e => { downAt = { p: e.containerPoint, t: Date.now() }; });
 map.on('mouseup click', e => {
