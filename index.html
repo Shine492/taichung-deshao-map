@@ -40,6 +40,16 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .vc-s { font-size: .78rem; color: var(--muted); margin-top: 2px; }
 .vc-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; margin-top: 10px; background: var(--line); }
 .vc-bar i { display: block; height: 100%; }
+.vcard .vc-bar { height: 26px; border-radius: 8px; margin-top: 8px; }
+.vcard .vc-bar i { color: #fff; font-style: normal; font-weight: 800; font-size: .85rem; line-height: 26px; text-align: center; font-variant-numeric: tabular-nums; }
+.vc-top { display: flex; align-items: center; gap: 8px; }
+.vc-pill { margin-left: auto; font-size: .78rem; font-weight: 700; color: #fff; border-radius: 999px; padding: 2px 10px; }
+.vc-head { font-size: 1.05rem; margin-top: 4px; }
+.vc-head b { font-family: var(--font-display); font-size: 1.7rem; line-height: 1; margin: 0 2px; font-variant-numeric: tabular-nums; }
+.vc-leg { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 7px; font-size: .76rem; }
+.vc-leg span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.vc-leg i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+.vc-leg small { color: var(--muted); font-size: .7rem; }
 .vc-nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 8px; text-align: center; }
 .vc-nums b { display: block; font-size: 1.5rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .vc-nums span { font-size: .74rem; color: var(--muted); white-space: nowrap; }
@@ -883,9 +893,15 @@ function paintView() {
   const wk = DATA.attMeta.weeks.map(w => w.slice(5).replace('-', '/').replace(/^0/, '')).join('–');
   chip.innerHTML = `<b>${V().label}出席</b><small>最近 8 週 ${wk}・依穩定比例：<span class="zk" style="--z:${ZONE.安全}">安全 ≥50%</span><span class="zk" style="--z:${ZONE.須注意}">須注意 25–49%</span><span class="zk" style="--z:${ZONE.危急}">危急 &lt;25%</span></small>`;
   const o = countsFor(() => true);
-  card.innerHTML = `<div class="vc-t">${V().label}出席</div><div class="vc-s">最近 8 週（${wk}）・共 ${DATA.total} 位</div>
-    <div class="vc-bar">${ATT_CATS.map(c => `<i style="width:${(o[c.k] / DATA.total * 100).toFixed(1)}%;background:${c.col}" title="${c.k} ${o[c.k]}"></i>`).join('')}</div>
-    <div class="vc-nums">${ATT_CATS.map(c => `<div><b style="color:${c.col}">${o[c.k]}</b><span>${c.k}</span></div>`).join('')}</div>`;
+  // 一句話先講重點：「每 10 位約幾位穩定」＋狀態；色條上直接寫人數，下面一行圖例說明次數
+  const known = o.穩定 + o.建立中 + o.需加強, st = zoneStatus(o), ten = known ? Math.round(o.穩定 / known * 10) : 0;
+  const LEG = { 穩定: '5 次以上', 建立中: '3–4 次', 需加強: '2 次以下', 未點名: '' };
+  card.innerHTML = `<div class="vc-top"><div class="vc-t">${V().label}出席</div>${st ? `<span class="vc-pill" style="background:${ZONE[st]}">${st}</span>` : ''}</div>
+    <div class="vc-head">每 10 位得少，約 <b style="color:${st ? ZONE[st] : 'inherit'}">${ten}</b> 位穩定</div>
+    <div class="vc-s">最近 8 週（${wk}）・共 ${DATA.total} 位</div>
+    <div class="vc-bar">${ATT_CATS.map(c => { const p = o[c.k] / DATA.total * 100;
+      return `<i style="width:${p.toFixed(1)}%;background:${c.col}" title="${c.k} ${o[c.k]} 位">${p >= 9 ? o[c.k] : ''}</i>`; }).join('')}</div>
+    <div class="vc-leg">${ATT_CATS.map(c => `<span><i style="background:${c.col}"></i>${c.k}${LEG[c.k] ? `<small>${LEG[c.k]}</small>` : ''}</span>`).join('')}</div>`;
 }
 document.getElementById('views').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) setView(b.dataset.v); });
 if (!DATA.attMeta) document.getElementById('viewsWrap').hidden = true;
