@@ -308,8 +308,13 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .ac-opt:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 .ac-copy,.h-copy{font:inherit;font-size:.82rem;font-weight:700;display:block;width:100%;margin-top:8px;padding:7px 10px;border:1px dashed var(--line);border-radius:10px;background:var(--chip);color:var(--fg);cursor:pointer}
 .ac-copy:hover,.h-copy:hover{border-color:var(--accent);color:var(--accent)}
-.ac-opts .ac-copy{margin-top:0}
-.ac-opts + .ac-opts{margin-top:6px}
+/* 傳揚、成全各自一塊：分析按鈕＋只複製這一項的按鈕 */
+.ac-box{display:flex;flex-direction:column;gap:6px;padding:6px;border-radius:12px}
+.ac-box.get{background:color-mix(in srgb,var(--c-ent) 10%,var(--panel))}
+.ac-box.now{background:color-mix(in srgb,var(--accent) 10%,var(--panel))}
+.ac-box .ac-copy{margin-top:0;font-size:.76rem;padding:6px 6px;background:var(--panel)}
+.ac-box.get .ac-copy{border-color:var(--c-ent);color:var(--c-ent)}
+.ac-box.now .ac-copy{border-color:var(--accent);color:var(--accent)}
 .h-copy{width:auto;margin:0 0 0 auto;border-radius:999px;padding:5px 14px}
 @media (prefers-reduced-motion: reduce){.leaflet-zoom-anim .leaflet-zoom-animated{transition:none}}
 </style>
@@ -351,7 +356,7 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 
 <section class="hist" id="now" hidden aria-label="成全得少分析">
   <div class="h-in">
-    <div class="h-top"><button class="h-back" id="nowClose">‹ 回地圖</button><h2 id="nowTitle">成全得少分析</h2><button class="h-copy" id="nowCopy">📋 一鍵複製（轉傳用）</button></div>
+    <div class="h-top"><button class="h-back" id="nowClose">‹ 回地圖</button><h2 id="nowTitle">成全得少分析</h2><button class="h-copy" id="nowCopy">📋 只複製成全重點（轉傳用）</button></div>
     <div class="h-card nw-head" id="nowHead"></div>
     <div class="nw-grid" id="nowGrid"></div>
     <div class="nw-note" id="nowNote"></div>
@@ -360,7 +365,7 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 
 <section class="hist" id="hist" hidden aria-label="傳揚得少分析：申請與進入專案歷年比例">
   <div class="h-in">
-    <div class="h-top"><button class="h-back" id="histClose">‹ 回地圖</button><h2>傳揚得少分析・申請與進入專案</h2><button class="h-copy" id="histCopy">📋 一鍵複製（轉傳用）</button></div>
+    <div class="h-top"><button class="h-back" id="histClose">‹ 回地圖</button><h2>傳揚得少分析・申請與進入專案</h2><button class="h-copy" id="histCopy">📋 只複製傳揚重點（轉傳用）</button></div>
     <nav class="crumb" id="hCrumb" aria-label="範圍"></nav>
     <div class="h-card">
       <div class="h-kpis" id="hKpi"></div>
@@ -462,12 +467,10 @@ function showCard(o) {
     ${o.up && careShapes[o.up] ? `<button class="ac-k ac-up" data-up>${o.kicker}・看整個照顧區 ›</button>` : `<div class="ac-k">${o.kicker}</div>`}<div class="ac-h">${o.title}</div>
     <div class="ac-n"><b>${o.count}</b> 位得少・申請填表累計 <b>${o.apps}</b> 份</div>${chips}
     <div class="ac-opts">
-      ${DATA.hist ? `<button class="ac-opt get" data-hist="${o.key}"><b>傳揚得少分析 ›</b><span>申請 → 進入專案</span></button>` : ''}
-      ${DATA.attMeta ? `<button class="ac-opt now" data-now><b>成全得少分析 ›</b><span>主日・小排・家聚會</span></button>` : ''}
-    </div>
-    <div class="ac-opts">
-      ${DATA.hist ? `<button class="ac-copy" data-copy="spread">📋 複製傳揚</button>` : ''}
-      ${DATA.attMeta ? `<button class="ac-copy" data-copy="perfect">📋 複製成全</button>` : ''}
+      ${DATA.hist ? `<div class="ac-box get"><button class="ac-opt get" data-hist="${o.key}"><b>傳揚得少分析 ›</b><span>申請 → 進入專案</span></button>
+        <button class="ac-copy" data-copy="spread">📋 只複製傳揚重點</button></div>` : ''}
+      ${DATA.attMeta ? `<div class="ac-box now"><button class="ac-opt now" data-now><b>成全得少分析 ›</b><span>主日・小排・家聚會</span></button>
+        <button class="ac-copy" data-copy="perfect">📋 只複製成全重點</button></div>` : ''}
     </div>`;
   areaCard.hidden = false;
   document.querySelector('.app').classList.add('carding');
