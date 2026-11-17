@@ -76,7 +76,9 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .zone:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .zone-head { display: flex; align-items: center; gap: 8px; font-weight: 700; }
 .sw { width: 12px; height: 12px; border-radius: 3px; flex: none; }
-.zone-head .n { margin-left: auto; font-variant-numeric: tabular-nums; }
+.zone-head { font-size: 1.05rem; }
+.zone-head .n { margin-left: auto; font-variant-numeric: tabular-nums; font-size: .8rem; font-weight: 500; color: var(--muted); }
+.zone-head .n::after { content: " 位"; }
 .bar { height: 4px; border-radius: 2px; background: var(--line); margin-top: 6px; overflow: hidden; }
 .bar i { display: block; height: 100%; border-radius: 2px; }
 .dqs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 7px; }
@@ -96,10 +98,18 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .badge { display: flex; flex-direction: column; align-items: center; pointer-events: none; transform: translate(-50%, -50%); width: max-content; }
 /* 名牌：區名為主（大、粗、狀態色底），人數為輔（下方小字） */
 .badge .c { height: 26px; padding: 0 10px; border-radius: 8px; display: grid; place-items: center; white-space: nowrap;
-  color: #fff; font-weight: 900; font-size: .92rem; letter-spacing: .02em; box-shadow: 0 1px 4px rgba(0,0,0,.28); border: 2px solid #fff; }
-.badge .l { font-size: .7rem; font-weight: 500; color: var(--muted); margin-top: 1px; text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 3px var(--bg); white-space: nowrap; font-variant-numeric: tabular-nums; }
-.badge.big .c { height: 32px; padding: 0 11px; border-radius: 10px; font-family: var(--font-display); font-size: 1.15rem; border-width: 2px; }
-.badge.big .l { font-size: .78rem; }
+  color: #fff; font-weight: 900; font-size: 1rem; letter-spacing: .02em; box-shadow: 0 1px 4px rgba(0,0,0,.28); border: 2px solid #fff; }
+.badge .l { font-size: .64rem; font-weight: 500; opacity: .9; color: var(--muted); margin-top: 1px; text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 3px var(--bg); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.badge.big .c { height: 36px; padding: 0 12px; border-radius: 10px; font-family: var(--font-display); font-size: 1.35rem; border-width: 2px; }
+.badge.big .l { font-size: .7rem; }
+.badge { position: relative; }
+.badge .c, .badge .l, .badge .sgs { position: relative; z-index: 1; }
+.badge .lead { position: absolute; left: 50%; top: 50%; height: 0; border-top: 1.5px solid var(--fg); opacity: .55; transform-origin: 0 0; z-index: 0; pointer-events: none; }
+.badge .lead::after { content: ""; position: absolute; right: -4px; top: -4.75px; width: 7px; height: 7px; border-radius: 50%; background: var(--fg); border: 1.5px solid var(--bg); }
+@media (max-width: 760px) {
+  .badge.big .c { height: 28px; padding: 0 8px; font-size: 1.05rem; }
+  .badge .c { height: 22px; padding: 0 7px; font-size: .82rem; }
+}
 .sgs { display: flex; gap: 2px; margin-top: 2px; }
 .sg { font-size: .66rem; font-weight: 700; line-height: 1; padding: 2px 4px; border-radius: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sg-小 { background: #f6d55c; color: #4a3a00; }
@@ -142,9 +152,10 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 
 /* tooltip card */
 .tip { font-family: var(--font-body); min-width: 150px; }
-.tip h3 { margin: 0 0 2px; font-size: .95rem; }
+/* 說明框：區名最大，人數次之 */
+.tip h3 { margin: 0 0 2px; font-family: var(--font-display); font-weight: 900; font-size: 1.3rem; }
 .tip .k { color: var(--muted); font-size: .76rem; }
-.tip .big { font-size: 1.5rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.tip .big { font-size: .95rem; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
 .tip ul { margin: 6px 0 0; padding: 0; list-style: none; font-size: .8rem; display: grid; grid-template-columns: auto auto; gap: 1px 12px; }
 .tip li { display: contents; }
 .tip li.hd span { color: var(--muted); font-size: .72rem; }
@@ -256,7 +267,7 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .ac-x{position:absolute;top:4px;right:4px;width:28px;height:28px;border:0;border-radius:8px;background:none;color:var(--muted);font:20px/1 var(--font-body);cursor:pointer}
 .ac-x:hover{background:var(--chip);color:var(--fg)}
 .ac-k{font-size:.74rem;color:var(--muted)}
-.ac-h{font-weight:700;font-size:1rem;margin:1px 28px 2px 0}
+.ac-h{font-family:var(--font-display);font-weight:900;font-size:1.35rem;margin:1px 28px 2px 0}
 .ac-n{font-size:.82rem;color:var(--muted)}
 .ac-n b{color:var(--fg);font-variant-numeric:tabular-nums}
 .area-card .tip-st{margin-top:6px}
@@ -627,6 +638,7 @@ function setView(v) {
   DATA.care.forEach(c => careBadgeOf[c.name].setIcon(badgeIcon(c.count, { care: c.name, text: c.name }, true, '', attCol(careCounts(c)))));
   buildLegend();
   paintView();
+  window.__declutter?.();   // 名牌換新後重新避讓
 }
 // 檢視主色＋區塊底色：聚會檢視時，大區／照顧區底色代表「穩定比例」
 const VC = { 主日: '#d98a1f', 小排: '#2f7fc4', 家聚會: '#c9506e' };
@@ -687,6 +699,48 @@ function render() {
   });
 }
 map.on('zoomend', render); render();
+
+// 名牌避讓：市中心區域很密，名牌疊在一起時往旁邊推開（只移動畫面位置，不改資料）
+function declutter() {
+  const group = map.hasLayer(careBadges) ? careBadges : map.hasLayer(dqBadges) ? dqBadges : null;
+  if (!group) return;
+  const items = [];
+  group.eachLayer(m => {
+    const el = m.getElement()?.firstElementChild; if (!el) return;
+    const p = map.latLngToContainerPoint(m.getLatLng());
+    items.push({ el, x: p.x, y: p.y, dx: 0, dy: 0, w: el.offsetWidth + 6, h: el.offsetHeight + 4 });
+  });
+  for (let it = 0; it < 80; it++) {
+    let moved = false;
+    for (let i = 0; i < items.length; i++) for (let j = i + 1; j < items.length; j++) {
+      const a = items[i], b = items[j];
+      const ax = a.x + a.dx, ay = a.y + a.dy, bx = b.x + b.dx, by = b.y + b.dy;
+      const ox = (a.w + b.w) / 2 - Math.abs(ax - bx), oy = (a.h + b.h) / 2 - Math.abs(ay - by);
+      if (ox <= 0 || oy <= 0) continue;
+      moved = true;
+      // 從重疊較少的方向推開，兩個各退一半
+      if (oy < ox) { const s = (ay <= by ? -1 : 1) * oy / 2; a.dy += s; b.dy -= s; }
+      else { const s = (ax <= bx ? -1 : 1) * ox / 2; a.dx += s; b.dx -= s; }
+    }
+    if (!moved) break;
+  }
+  items.forEach(o => {
+    o.el.style.transform = `translate(calc(-50% + ${o.dx.toFixed(1)}px), calc(-50% + ${o.dy.toFixed(1)}px))`;
+    // 被推開的名牌拉一條細線回到原本位置，看得出是哪一區
+    let ln = o.el.querySelector(':scope > .lead');
+    if (!ln) { ln = document.createElement('i'); ln.className = 'lead'; o.el.prepend(ln); }
+    const len = Math.hypot(o.dx, o.dy);
+    ln.style.display = len < 14 ? 'none' : '';
+    ln.style.width = len.toFixed(1) + 'px';
+    ln.style.transform = `rotate(${Math.atan2(-o.dy, -o.dx)}rad)`;
+  });
+}
+let declutterQueued = false;   // 同一畫面只排一次（加入很多小人時 layeradd 會連發）
+const declutterSoon = () => { if (declutterQueued) return; declutterQueued = true; requestAnimationFrame(() => { declutterQueued = false; declutter(); }); };
+map.on('zoomend moveend layeradd', declutterSoon);
+window.__declutter = declutterSoon;
+declutterSoon();
+if (document.fonts) document.fonts.ready.then(declutterSoon);   // 字型載入後名牌寬度會變
 
 const modeBtns = { auto: mAuto, care: mCare, dq: mDq };
 Object.entries(modeBtns).forEach(([k, b]) => b.addEventListener('click', () => {
