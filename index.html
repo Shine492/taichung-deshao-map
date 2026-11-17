@@ -48,7 +48,7 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .zk { display: inline-block; margin-right: 8px; white-space: nowrap; }
 .zk::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 2px; background: var(--z); border: 1px solid #fff; margin-right: 4px; vertical-align: -1px; }
 /* 危急（紅）區塊持續閃爍；游標指到時停下來方便看清楚 */
-/* 危急區塊：打開或切換檢視時閃 10 下就停；點選危急區塊時，那一區再閃 10 下 */
+/* 危急區塊：只在剛打開地圖時閃 10 下就停 */
 .leaflet-overlay-pane path.blink { animation: zoneblink 1s ease-in-out 10; }
 @keyframes zoneblink { 0%, 100% { fill-opacity: .72; } 50% { fill-opacity: .12; } }
 .vchip { position: absolute; z-index: 500; top: calc(12px + env(safe-area-inset-top, 0px)); left: 56px; max-width: calc(100% - 260px);
@@ -662,18 +662,14 @@ function setCls(shp, cls, on) {
   });
 }
 // 重新加上 blink class 讓「閃 5 次」從頭再跑一次
-function setBlink(shp, on) {
-  shp.eachLayer(l => { const el = l.getElement(); if (el) { el.classList.remove('blink'); void el.getBoundingClientRect(); } });
-  setCls(shp, 'blink', on);
-}
-let selShp = null;   // 目前被點選的區塊（危急的話會持續閃）
-// 點選危急區塊時，只讓那一區的「閃 10 下」從頭再跑一次；關掉小卡不會觸發閃爍
-function selectShape(shp) {
-  selShp = shp;
-  if (!shp) return;
-  shp.eachLayer(l => { const el = l.getElement(); if (!el || !el.classList.contains('blink')) return;
-    el.classList.remove('blink'); void el.getBoundingClientRect(); el.classList.add('blink'); });
-}
+// 只在剛打開地圖時閃 10 下；之後切換檢視、縮放、點選都不再閃
+let blinkOn = true;
+function setBlink(shp, on) { setCls(shp, 'blink', on && blinkOn); }
+setTimeout(() => { blinkOn = false;
+  Object.values(dqShapes).forEach(s => setCls(s, 'blink', false));
+  Object.values(careShapes).forEach(s => setCls(s, 'blink', false)); }, 10500);
+let selShp = null;   // 目前被點選的區塊
+function selectShape(shp) { selShp = shp; }
 const attCol = o => view === 'stage' ? null : zoneColor(o)[0];
 function paintView() {
   const app = document.querySelector('.app'), att = view !== 'stage';
@@ -696,7 +692,7 @@ function paintView() {
   chip.hidden = card.hidden = !att;
   if (!att) return;
   const wk = DATA.attMeta.weeks.map(w => w.slice(5).replace('-', '/').replace(/^0/, '')).join('–');
-  chip.innerHTML = `<b>${V().label}出席</b><small>最近 8 週 ${wk}・依穩定比例：<span class="zk" style="--z:${ZONE.安全}">安全 ≥50%</span><span class="zk" style="--z:${ZONE.須注意}">須注意 25–49%</span><span class="zk" style="--z:${ZONE.危急}">危急 &lt;25%（閃 10 下）</span></small>`;
+  chip.innerHTML = `<b>${V().label}出席</b><small>最近 8 週 ${wk}・依穩定比例：<span class="zk" style="--z:${ZONE.安全}">安全 ≥50%</span><span class="zk" style="--z:${ZONE.須注意}">須注意 25–49%</span><span class="zk" style="--z:${ZONE.危急}">危急 &lt;25%</span></small>`;
   const o = countsFor(() => true);
   card.innerHTML = `<div class="vc-t">${V().label}出席</div><div class="vc-s">最近 8 週（${wk}）・共 ${DATA.total} 位</div>
     <div class="vc-bar">${ATT_CATS.map(c => `<i style="width:${(o[c.k] / DATA.total * 100).toFixed(1)}%;background:${c.col}" title="${c.k} ${o[c.k]}"></i>`).join('')}</div>
