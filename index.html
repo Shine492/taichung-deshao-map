@@ -40,8 +40,8 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .vc-s { font-size: .78rem; color: var(--muted); margin-top: 2px; }
 .vc-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; margin-top: 10px; background: var(--line); }
 .vc-bar i { display: block; height: 100%; }
-.vcard .vc-bar { height: 26px; border-radius: 8px; margin-top: 8px; }
-.vcard .vc-bar i { color: #fff; font-style: normal; font-weight: 800; font-size: .85rem; line-height: 26px; text-align: center; font-variant-numeric: tabular-nums; }
+.vc-bar.big { height: 26px; border-radius: 8px; margin-top: 8px; }
+.vc-bar.big i { color: #fff; font-style: normal; font-weight: 800; font-size: .85rem; line-height: 26px; text-align: center; font-variant-numeric: tabular-nums; }
 .vc-top { display: flex; align-items: center; gap: 8px; }
 .vc-pill { margin-left: auto; font-size: .78rem; font-weight: 700; color: #fff; border-radius: 999px; padding: 2px 10px; }
 .vc-head { font-size: 1.05rem; margin-top: 4px; }
@@ -514,6 +514,14 @@ function showCard(o) {
 
 // ── 成全得少分析：這一區得少的主日／小排／家聚會出席狀況與建議 ──
 const MEET = ['主日', '小排', '家聚會'];
+// 出席色條：人數直接寫在色條上，下面一行圖例；0 人的類別（例如沒有未點名）就不顯示
+const ATT_LEG = { 穩定: '5 次以上', 建立中: '3–4 次', 需加強: '2 次以下', 未點名: '' };
+function attBar(o, tot) {
+  const cats = ATT_CATS.filter(c => o[c.k] || c.k !== '未點名');
+  return `<div class="vc-bar big">${cats.map(c => { const p = o[c.k] / (tot || 1) * 100;
+      return `<i style="width:${p.toFixed(1)}%;background:${c.col}" title="${c.k} ${o[c.k]} 位">${o[c.k] && p >= 9 ? o[c.k] : ''}</i>`; }).join('')}</div>
+    <div class="vc-leg">${cats.map(c => `<span><i style="background:${c.col}"></i>${c.k} <b>${o[c.k]}</b>${ATT_LEG[c.k] ? `<small>${ATT_LEG[c.k]}</small>` : ''}</span>`).join('')}</div>`;
+}
 function attOf(filter, idx) {
   const o = { 穩定: 0, 建立中: 0, 需加強: 0, 未點名: 0 };
   DATA.students.forEach(s => { if (!filter(s)) return; const v = s.att ? s.att[idx] : null;
@@ -613,9 +621,8 @@ function openNow(o) {
     if (x.c.未點名) tips.push(`有 ${x.c.未點名} 位沒有點名紀錄，請確認是否漏點。`);
     return `<div class="h-card nw-c" style="--z:${z}">
       <div class="nw-t"><h3>${x.m}</h3><span class="nw-pill">${x.st || '無資料'}</span></div>
-      <div class="nw-pct">穩定比例 <b>${x.r == null ? '—' : Math.round(x.r * 100) + '%'}</b></div>
-      <div class="vc-bar">${ATT_CATS.map(c => `<i style="width:${(x.c[c.k] / tot * 100).toFixed(1)}%;background:${c.col}"></i>`).join('')}</div>
-      <div class="nw-nums">${ATT_CATS.map(c => `<div><b style="color:${c.col}">${x.c[c.k]}</b><span>${c.k}</span></div>`).join('')}</div>
+      <div class="vc-head">${x.r == null ? '還沒有點名紀錄' : `每 10 位得少，約 <b style="color:${z}">${Math.round(x.r * 10)}</b> 位穩定`}</div>
+      ${attBar(x.c, tot)}
       <ul class="nw-tips">${tips.map(t => `<li>${t}</li>`).join('')}</ul></div>`; }).join('');
   document.getElementById('nowNote').innerHTML = `穩定：8 週 5 次以上・建立中：3–4 次・需加強：2 次以下。穩定比例 ≥50% 安全、25–49% 須注意、&lt;25% 危急（不含未點名）。資料來源：${DATA.attMeta.source}。`;
   const sec = document.getElementById('now'); sec.hidden = false; sec.scrollTo({ top: 0 }); document.body.style.overflow = 'hidden';
@@ -895,13 +902,10 @@ function paintView() {
   const o = countsFor(() => true);
   // 一句話先講重點：「每 10 位約幾位穩定」＋狀態；色條上直接寫人數，下面一行圖例說明次數
   const known = o.穩定 + o.建立中 + o.需加強, st = zoneStatus(o), ten = known ? Math.round(o.穩定 / known * 10) : 0;
-  const LEG = { 穩定: '5 次以上', 建立中: '3–4 次', 需加強: '2 次以下', 未點名: '' };
   card.innerHTML = `<div class="vc-top"><div class="vc-t">${V().label}出席</div>${st ? `<span class="vc-pill" style="background:${ZONE[st]}">${st}</span>` : ''}</div>
     <div class="vc-head">每 10 位得少，約 <b style="color:${st ? ZONE[st] : 'inherit'}">${ten}</b> 位穩定</div>
     <div class="vc-s">最近 8 週（${wk}）・共 ${DATA.total} 位</div>
-    <div class="vc-bar">${ATT_CATS.map(c => { const p = o[c.k] / DATA.total * 100;
-      return `<i style="width:${p.toFixed(1)}%;background:${c.col}" title="${c.k} ${o[c.k]} 位">${p >= 9 ? o[c.k] : ''}</i>`; }).join('')}</div>
-    <div class="vc-leg">${ATT_CATS.map(c => `<span><i style="background:${c.col}"></i>${c.k}${LEG[c.k] ? `<small>${LEG[c.k]}</small>` : ''}</span>`).join('')}</div>`;
+    ${attBar(o, DATA.total)}`;
 }
 document.getElementById('views').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) setView(b.dataset.v); });
 if (!DATA.attMeta) document.getElementById('viewsWrap').hidden = true;
