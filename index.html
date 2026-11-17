@@ -43,9 +43,14 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .vc-nums { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; margin-top: 8px; text-align: center; }
 .vc-nums b { display: block; font-size: 1.5rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
 .vc-nums span { font-size: .74rem; color: var(--muted); white-space: nowrap; }
-.app[data-view]:not([data-view="stage"]) #map { background: color-mix(in srgb, var(--vc) 14%, var(--sea)); }
-.vframe { position: absolute; inset: 0; pointer-events: none; z-index: 450; border: 0 solid var(--vc); transition: border-width .2s ease; }
-.app[data-view]:not([data-view="stage"]) .vframe { border-width: 5px; }
+/* 出席檢視時地圖上只留綠／黃／紅三色：不再替地圖背景與外框換色，檢視名稱看左上角標籤 */
+.vframe { display: none; }
+.zk { display: inline-block; margin-right: 8px; white-space: nowrap; }
+.zk::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 2px; background: var(--z); border: 1px solid #fff; margin-right: 4px; vertical-align: -1px; }
+/* 危急（紅）區塊持續閃爍；游標指到時停下來方便看清楚 */
+.leaflet-overlay-pane path.blink { animation: zoneblink 1.1s ease-in-out infinite; }
+.leaflet-overlay-pane path.blink.pop { animation: none; }
+@keyframes zoneblink { 0%, 100% { fill-opacity: .72; } 50% { fill-opacity: .12; } }
 .vchip { position: absolute; z-index: 500; top: calc(12px + env(safe-area-inset-top, 0px)); left: 56px; max-width: calc(100% - 260px);
   background: var(--vc); color: #fff; border-radius: 10px; padding: 6px 12px; box-shadow: 0 2px 8px rgba(0,0,0,.2); line-height: 1.35; }
 .vchip b { font-family: var(--font-display); font-size: 1.05rem; font-weight: 900; }
@@ -255,7 +260,8 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .ac-n b{color:var(--fg);font-variant-numeric:tabular-nums}
 .area-card .tip-st{margin-top:6px}
 @media (max-width:760px){.area-card{left:12px;right:12px;width:auto}.app.carding .vchip{display:none}}
-@media (hover:none){.app.carding .leaflet-tooltip-pane{display:none}}
+/* 點出一個區域（小卡打開）時，其他游標說明框都不出現，避免重複資訊 */
+.app.carding .leaflet-tooltip-pane{display:none}
 .tip-hint{font-size:.72rem;color:var(--muted);margin-top:6px}
 .tip-go{font:inherit;font-size:.85rem;font-weight:700;display:block;width:100%;margin-top:10px;padding:7px 10px;border:0;border-radius:8px;background:var(--accent);color:var(--panel);cursor:pointer}
 .tip-go:hover{filter:brightness(1.08)}
@@ -363,7 +369,8 @@ const VIEWS = {
 };
 let view = 'stage';
 const V = () => VIEWS[view];
-const catColor = (s, careCol) => view === 'stage' ? careCol : V().cats.find(c => c.k === V().catOf(s)).col;
+// 出席檢視：小人用綠／黃／紅；未點名的小人畫成白色，地圖上不多出第四種顏色
+const catColor = (s, careCol) => { if (view === 'stage') return careCol; const k = V().catOf(s); return k === '未點名' ? '#ffffff' : V().cats.find(c => c.k === k).col; };
 function countsFor(filter) {
   const o = Object.fromEntries(V().cats.map(c => [c.k, 0]));
   DATA.students.forEach(s => { if (filter(s)) o[V().catOf(s)]++; });
@@ -431,10 +438,12 @@ map.on('mouseup click', e => {
   shp._fly();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('hist').hidden) hideCard(); });
-function badgeIcon(count, label, big, extra = '') {
+function badgeIcon(count, label, big, extra = '', col = null) {
   const cls = 'badge' + (big ? ' big' : '') + (count === 0 ? ' zero' : '');
+  // 出席檢視時圓圈用狀態色（綠／黃／紅），沒有點名資料的用白底
+  const bg = col || COLORS[label.care] || '#888', fg = col === '#ffffff' ? 'color:#1d2a26;border-color:#9aa5a0;' : '';
   return L.divIcon({ className: '', iconSize: null,
-    html: `<div class="${cls}"><div class="c" style="background:${COLORS[label.care] || '#888'}">${count}</div><div class="l">${label.text}</div>${extra}</div>` });
+    html: `<div class="${cls}"><div class="c" style="background:${bg};${fg}">${count}</div><div class="l">${label.text}</div>${extra}</div>` });
 }
 function badge(latlng, count, label, big, extra = '') {
   return L.marker(latlng, { interactive: false, keyboard: false, zIndexOffset: 5000, icon: badgeIcon(count, label, big, extra) });
@@ -552,7 +561,7 @@ let curTier = tierOf(map.getZoom());
 const KID_SIZE = [null, [24, 31, 12, 29], [40, 51, 20, 48]];
 function kidIcon(s, t = curTier) {
   const col = catColor(s, COLORS[DATA.dq.find(x => x.n === s.dq).care] || '#888');
-  if (t === 0) return L.divIcon({ className: '', iconSize: [11, 11], iconAnchor: [5.5, 5.5], html: `<div class="kdot" style="background:${col}"></div>` });
+  if (t === 0) return L.divIcon({ className: '', iconSize: [11, 11], iconAnchor: [5.5, 5.5], html: `<div class="kdot" style="background:${col}${col === '#ffffff' ? ';border-color:#7b8a84' : ''}"></div>` });
   const [w, h, ax, ay] = KID_SIZE[t];
   return L.divIcon({ className: '', iconSize: [w, h], iconAnchor: [ax, ay], html: kidSvg(col, s.st, w, h) });
 }
@@ -603,19 +612,27 @@ function setView(v) {
   if (cardFor) showCard(cardFor);   // 小卡上的分類數字跟著檢視更新
   document.querySelectorAll('#views button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
   kids.forEach(m => { m.setIcon(kidIcon(m._s)); applyFilter(m); });
-  DATA.dq.forEach(d => dqBadgeOf[d.n].setIcon(badgeIcon(d.count, { care: d.care, text: d.n + ' 大區' }, false, chipsRow(dqCounts(d.n)))));
-  DATA.care.forEach(c => careBadgeOf[c.name].setIcon(badgeIcon(c.count, { care: c.name, text: c.name }, true, chipsRow(careCounts(c)))));
+  DATA.dq.forEach(d => dqBadgeOf[d.n].setIcon(badgeIcon(d.count, { care: d.care, text: d.n + ' 大區' }, false, chipsRow(dqCounts(d.n)), attCol(dqCounts(d.n)))));
+  DATA.care.forEach(c => careBadgeOf[c.name].setIcon(badgeIcon(c.count, { care: c.name, text: c.name }, true, chipsRow(careCounts(c)), attCol(careCounts(c)))));
   buildLegend();
   paintView();
 }
 // 檢視主色＋區塊底色：聚會檢視時，大區／照顧區底色代表「穩定比例」
 const VC = { 主日: '#d98a1f', 小排: '#2f7fc4', 家聚會: '#c9506e' };
-function zoneColor(o) {
+// 地圖只用三個顏色：綠＝安全、黃＝須注意、紅＝危急（紅色區塊會閃爍）；沒有點名資料的區塊不上色
+const ZONE = { 安全: '#2e9e5b', 須注意: '#e0a526', 危急: '#d1495b' };
+function zoneStatus(o) {
   const known = o['穩定'] + o['建立中'] + o['需加強'];
-  if (!known) return ['#9aa5a0', .1];
+  if (!known) return null;
   const r = o['穩定'] / known;
-  return [r >= .5 ? '#2e9e5b' : r >= .25 ? '#e0a526' : '#d1495b', .55];
+  return r >= .5 ? '安全' : r >= .25 ? '須注意' : '危急';
 }
+function zoneColor(o) { const s = zoneStatus(o); return s ? [ZONE[s], .55] : ['#ffffff', 0]; }
+// 閃爍用 CSS class；區塊重新加進地圖時也要帶著 class
+function setBlink(shp, on) {
+  shp.eachLayer(l => { l.options.className = on ? 'blink' : ''; l.getElement()?.classList.toggle('blink', on); });
+}
+const attCol = o => view === 'stage' ? null : zoneColor(o)[0];
 function paintView() {
   const app = document.querySelector('.app'), att = view !== 'stage';
   app.dataset.view = view;
@@ -623,16 +640,21 @@ function paintView() {
   DATA.dq.forEach(d => {
     const shp = dqShapes[d.n];
     let col = COLORS[d.care] || '#888', op = d.count ? .12 + .45 * (d.count / maxDq) : .04, stroke = col;
-    if (att) { [col, op] = d.count ? zoneColor(dqCounts(d.n)) : ['#9aa5a0', .05]; stroke = '#ffffff'; }
+    const st = att && d.count ? zoneStatus(dqCounts(d.n)) : null;
+    if (att) { [col, op] = st ? [ZONE[st], .55] : ['#ffffff', 0]; stroke = '#ffffff'; }
     shp._op = op; shp._stroke = stroke;
     shp.setStyle({ color: stroke, fillColor: col, fillOpacity: op, weight: 1.5 });
+    setBlink(shp, st === '危急');
   });
-  DATA.care.forEach(c => { const col = att ? zoneColor(careCounts(c))[0] : COLORS[c.name]; careShapes[c.name].setStyle({ color: att ? '#ffffff' : col, fillColor: col, fillOpacity: att ? .55 : .28 }); });
+  DATA.care.forEach(c => { const st = att ? zoneStatus(careCounts(c)) : null;
+    const col = att ? (st ? ZONE[st] : '#ffffff') : COLORS[c.name];
+    careShapes[c.name].setStyle({ color: att ? '#ffffff' : col, fillColor: col, fillOpacity: att ? (st ? .55 : 0) : .28 });
+    setBlink(careShapes[c.name], st === '危急'); });
   const chip = document.getElementById('vchip'), card = document.getElementById('vcard');
   chip.hidden = card.hidden = !att;
   if (!att) return;
   const wk = DATA.attMeta.weeks.map(w => w.slice(5).replace('-', '/').replace(/^0/, '')).join('–');
-  chip.innerHTML = `<b>${V().label}出席</b><small>最近 8 週 ${wk}・區塊底色＝穩定比例：綠 ≥50%、黃 25–49%、紅 &lt;25%</small>`;
+  chip.innerHTML = `<b>${V().label}出席</b><small>最近 8 週 ${wk}・依穩定比例：<span class="zk" style="--z:${ZONE.安全}">安全 ≥50%</span><span class="zk" style="--z:${ZONE.須注意}">須注意 25–49%</span><span class="zk" style="--z:${ZONE.危急}">危急 &lt;25%（閃爍）</span></small>`;
   const o = countsFor(() => true);
   card.innerHTML = `<div class="vc-t">${V().label}出席</div><div class="vc-s">最近 8 週（${wk}）・共 ${DATA.total} 位</div>
     <div class="vc-bar">${ATT_CATS.map(c => `<i style="width:${(o[c.k] / DATA.total * 100).toFixed(1)}%;background:${c.col}" title="${c.k} ${o[c.k]}"></i>`).join('')}</div>
