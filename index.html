@@ -306,6 +306,9 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .ac-opt.now{border-color:var(--accent)} .ac-opt.now b{color:var(--accent)}
 .ac-opt:hover{background:var(--chip)}
 .ac-opt:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
+.ac-copy,.h-copy{font:inherit;font-size:.82rem;font-weight:700;display:block;width:100%;margin-top:8px;padding:7px 10px;border:1px dashed var(--line);border-radius:10px;background:var(--chip);color:var(--fg);cursor:pointer}
+.ac-copy:hover,.h-copy:hover{border-color:var(--accent);color:var(--accent)}
+.h-copy{width:auto;margin:0 0 0 auto;border-radius:999px;padding:5px 14px}
 @media (prefers-reduced-motion: reduce){.leaflet-zoom-anim .leaflet-zoom-animated{transition:none}}
 </style>
 
@@ -346,7 +349,7 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 
 <section class="hist" id="now" hidden aria-label="成全得少分析">
   <div class="h-in">
-    <div class="h-top"><button class="h-back" id="nowClose">‹ 回地圖</button><h2 id="nowTitle">成全得少分析</h2></div>
+    <div class="h-top"><button class="h-back" id="nowClose">‹ 回地圖</button><h2 id="nowTitle">成全得少分析</h2><button class="h-copy" id="nowCopy">📋 一鍵複製（轉傳用）</button></div>
     <div class="h-card nw-head" id="nowHead"></div>
     <div class="nw-grid" id="nowGrid"></div>
     <div class="nw-note" id="nowNote"></div>
@@ -355,7 +358,7 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 
 <section class="hist" id="hist" hidden aria-label="傳揚得少分析：申請與進入專案歷年比例">
   <div class="h-in">
-    <div class="h-top"><button class="h-back" id="histClose">‹ 回地圖</button><h2>傳揚得少分析・申請與進入專案</h2></div>
+    <div class="h-top"><button class="h-back" id="histClose">‹ 回地圖</button><h2>傳揚得少分析・申請與進入專案</h2><button class="h-copy" id="histCopy">📋 一鍵複製（轉傳用）</button></div>
     <nav class="crumb" id="hCrumb" aria-label="範圍"></nav>
     <div class="h-card">
       <div class="h-kpis" id="hKpi"></div>
@@ -459,12 +462,14 @@ function showCard(o) {
     <div class="ac-opts">
       ${DATA.hist ? `<button class="ac-opt get" data-hist="${o.key}"><b>傳揚得少分析 ›</b><span>申請 → 進入專案</span></button>` : ''}
       ${DATA.attMeta ? `<button class="ac-opt now" data-now><b>成全得少分析 ›</b><span>主日・小排・家聚會</span></button>` : ''}
-    </div>`;
+    </div>
+    <button class="ac-copy" data-copy>📋 一鍵複製本區情形（轉傳用）</button>`;
   areaCard.hidden = false;
   document.querySelector('.app').classList.add('carding');
   areaCard.querySelector('.ac-x').onclick = hideCard;
   const go = areaCard.querySelector('[data-hist]'); if (go) go.onclick = () => window.openHist?.(go.dataset.hist);
   const nw = areaCard.querySelector('[data-now]'); if (nw) nw.onclick = () => openNow(o);
+  areaCard.querySelector('[data-copy]').onclick = e => copyText(areaText(o), e.currentTarget);
   const up = areaCard.querySelector('[data-up]'); if (up) up.onclick = () => { const s = careShapes[o.up]; showCard(s._card()); selectShape(s); s._fly(); };
 }
 
@@ -487,12 +492,50 @@ const ADVICE = {
           須注意: ['排定固定的拜訪週期（例如隔週一次），並邀父母一起參與。', '先從「建立中」的家開始，比較容易穩定下來。'],
           安全: ['邀請家長、同學一起來，讓這個家成為據點。', '可以由這個家接待附近其他得少。'] },
 };
-function openNow(o) {
-  const filter = o.filter, w = DATA.attMeta.weeks.map(x => x.slice(5).replace('-', '/').replace(/^0/, ''));
-  const rows = MEET.map((m, i) => { const c = attOf(filter, i), known = c.穩定 + c.建立中 + c.需加強;
+const attWeeks = () => DATA.attMeta.weeks.map(x => x.slice(5).replace('-', '/').replace(/^0/, ''));
+function nowRows(o) {
+  const rows = MEET.map((m, i) => { const c = attOf(o.filter, i), known = c.穩定 + c.建立中 + c.需加強;
     return { m, c, known, r: known ? c.穩定 / known : null, st: zoneStatus(c) }; });
+  return { rows, worst: rows.filter(x => x.st).sort((a, b) => a.r - b.r)[0] };
+}
+// ── 一鍵複製：把這一區的情形整理成文字，可直接貼到 LINE 轉傳給各區 ──
+const SITE = 'https://shine492.github.io/taichung-deshao-map/';
+const DOT = { 安全: '🟢', 須注意: '🟡', 危急: '🔴' };
+const areaObj = key => { const k = String(key || '').replace(/^hist-?/, '');
+  if (!k) return { title: '全台中', name: '全台中', key: 'hist', count: DATA.total, apps: DATA.appsTotal, filter: () => true };
+  return (/^\d+$/.test(k) ? dqShapes[+k] : careShapes[k])?._card(); };
+function areaText(o) {
+  const t = new Date(), L = [`【${o.title}・得少情形】${t.getFullYear() - 1911}/${t.getMonth() + 1}/${t.getDate()}`, `👥 目前得少 ${o.count} 位`];
+  const h = window.histStats?.(o.key);
+  if (h) {
+    L.push('', '📣 傳揚（2023 年起）', `・申請填表 ${h.apps} 份（今年 ${h.year} 份）`, `・已進入專案 ${h.ent} 位`);
+    if (h.ratio) L.push(`・約每 ${h.ratio < 1 ? '<1' : h.ratio.toFixed(1)} 份申請 → 1 位進入專案`);
+    if (h.waiting) L.push(`・下半年 ${h.waiting} 份申請審核中`);
+  }
+  if (DATA.attMeta && o.count) {
+    const w = attWeeks(), { rows, worst } = nowRows(o);
+    L.push('', `🌱 成全（最近 8 週 ${w[0]}–${w[1]}）`);
+    rows.forEach(x => L.push(`${DOT[x.st] || '⚪'} ${x.m}${x.st ? ' ' + x.st : ''}：穩定 ${x.c.穩定}・建立中 ${x.c.建立中}・需加強 ${x.c.需加強}${x.c.未點名 ? '・未點名 ' + x.c.未點名 : ''}`));
+    if (worst && worst.st !== '安全') L.push('', `👉 最需要加強：${worst.m}`, `建議：${ADVICE[worst.m][worst.st][0]}`);
+    else if (worst) L.push('', '👍 三項聚會都穩定，繼續保持！');
+    L.push('（穩定＝8 週 5 次以上；建立中 3–4 次；需加強 2 次以下）');
+  }
+  L.push('', `🗺 地圖：${SITE}`);
+  return L.join('\n');
+}
+function copyText(txt, btn) {
+  const done = ok => { if (!btn) return; const old = btn.dataset.label || btn.innerHTML; btn.dataset.label = old;
+    btn.innerHTML = ok ? '✓ 已複製，可貼到 LINE' : '複製失敗，請長按選取'; setTimeout(() => { btn.innerHTML = old; }, 2200); };
+  const fallback = () => { const ta = document.createElement('textarea'); ta.value = txt; ta.setAttribute('readonly', '');
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0'; document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, txt.length);
+    let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} ta.remove(); done(ok); };
+  if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).then(() => done(true), fallback); else fallback();
+}
+window.copyArea = (key, btn) => { const o = areaObj(key); if (o) copyText(areaText(o), btn); };
+function openNow(o) {
+  const w = attWeeks(), { rows, worst } = nowRows(o);
   document.getElementById('nowTitle').textContent = `${o.name}・成全得少分析`;
-  const ranked = rows.filter(x => x.st).sort((a, b) => a.r - b.r), worst = ranked[0];
+  document.getElementById('nowCopy').onclick = e => copyText(areaText(o), e.currentTarget);
   let head = `<div><span class="big">${o.title}</span>　目前 <b>${o.count}</b> 位得少・最近 8 週（${w[0]}–${w[1]}）</div>`;
   if (!o.count) head += `<div>這一區目前還沒有得少，先看「傳揚得少分析」，多發宣傳單張、邀人填表。</div>`;
   else if (!worst) head += `<div>這一區的得少還沒有點名紀錄，請先確認點名系統有登記。</div>`;
@@ -1038,6 +1081,8 @@ document.getElementById('foot').innerHTML =
   const parse = k => { const m = decodeURIComponent(k || '').replace(/^#/, '').match(/^hist(?:-(.+))?$/);
     return !m ? undefined : !m[1] ? null : /^\d+$/.test(m[1]) ? { level: 'dq', dq: +m[1] } : { level: 'care', care: m[1] }; };
   window.openHist = key => { map.closePopup(); open(parse(key) || null); };
+  window.histStats = key => { const s = parse(key.startsWith('hist') ? key : 'hist'); const sc = s || { level: 'all' }; return stats(scopeDqs(sc), sc.level === 'all'); };
+  $('histCopy').onclick = e => window.copyArea(scope.level === 'all' ? 'hist' : scope.level === 'care' ? `hist-${scope.care}` : `hist-${scope.dq}`, e.currentTarget);
   const s0 = parse(location.hash);
   if (s0 !== undefined) open(s0);
 })();
