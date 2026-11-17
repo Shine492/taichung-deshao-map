@@ -94,11 +94,12 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 
 /* count badges on the map */
 .badge { display: flex; flex-direction: column; align-items: center; pointer-events: none; transform: translate(-50%, -50%); width: max-content; }
-.badge .c { min-width: 30px; height: 30px; padding: 0 7px; border-radius: 999px; display: grid; place-items: center;
-  color: #fff; font-weight: 700; font-size: .95rem; font-variant-numeric: tabular-nums; box-shadow: 0 1px 4px rgba(0,0,0,.25); border: 2px solid #fff; }
-.badge .l { font-size: .72rem; font-weight: 700; color: var(--fg); margin-top: 2px; text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 3px var(--bg); white-space: nowrap; }
-.badge.big .c { min-width: 46px; height: 46px; font-size: 1.25rem; }
-.badge.big .l { font-size: .9rem; }
+/* 名牌：區名為主（大、粗、狀態色底），人數為輔（下方小字） */
+.badge .c { height: 26px; padding: 0 10px; border-radius: 8px; display: grid; place-items: center; white-space: nowrap;
+  color: #fff; font-weight: 900; font-size: .92rem; letter-spacing: .02em; box-shadow: 0 1px 4px rgba(0,0,0,.28); border: 2px solid #fff; }
+.badge .l { font-size: .7rem; font-weight: 500; color: var(--muted); margin-top: 1px; text-shadow: 0 0 3px var(--bg), 0 0 3px var(--bg), 0 0 3px var(--bg); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.badge.big .c { height: 32px; padding: 0 11px; border-radius: 10px; font-family: var(--font-display); font-size: 1.15rem; border-width: 2px; }
+.badge.big .l { font-size: .78rem; }
 .sgs { display: flex; gap: 2px; margin-top: 2px; }
 .sg { font-size: .66rem; font-weight: 700; line-height: 1; padding: 2px 4px; border-radius: 4px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .sg-小 { background: #f6d55c; color: #4a3a00; }
@@ -108,7 +109,7 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .badge.pop .sgs { transform: scale(1.1); }
 .tip-st { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px; }
 .tip-st .sg { font-size: .74rem; padding: 3px 6px; }
-.badge.zero .c { background: var(--muted) !important; opacity: .7; min-width: 22px; height: 22px; font-size: .75rem; }
+.badge.zero .c { background: var(--muted) !important; opacity: .7; height: 22px; font-size: .75rem; font-weight: 700; }
 
 /* little-person markers: wave + smile when their 大區 is hovered */
 .kid { filter: drop-shadow(0 1px 1.5px rgba(0,0,0,.22)); }
@@ -451,7 +452,8 @@ function badgeIcon(count, label, big, extra = '', col = null) {
   // 出席檢視時圓圈用狀態色（綠／黃／紅），沒有點名資料的用白底
   const bg = col || COLORS[label.care] || '#888', fg = col === '#ffffff' ? 'color:#1d2a26;border-color:#9aa5a0;' : '';
   return L.divIcon({ className: '', iconSize: null,
-    html: `<div class="${cls}"><div class="c" style="background:${bg};${fg}">${count}</div><div class="l">${label.text}</div>${extra}</div>` });
+    // 區名是主角（狀態色名牌），人數是小字
+    html: `<div class="${cls}"><div class="c" style="background:${bg};${fg}">${label.text}</div><div class="l">${count} 位</div>${extra}</div>` });
 }
 function badge(latlng, count, label, big, extra = '') {
   return L.marker(latlng, { interactive: false, keyboard: false, zIndexOffset: 5000, icon: badgeIcon(count, label, big, extra) });
@@ -468,7 +470,7 @@ DATA.care.forEach(c => {
     count: c.count, apps: c.apps, counts: () => careCounts(c) });
   shp._fly = () => map.flyToBounds(shp.getBounds(), { padding: [30, 30], duration: .6 });
   careShapes[c.name] = shp; careLayer.addLayer(shp);
-  const b = badge(c.label, c.count, { care: c.name, text: c.name }, true, chipsRow(careCounts(c)));
+  const b = badge(c.label, c.count, { care: c.name, text: c.name }, true, '');
   careBadgeOf[c.name] = b; careBadges.addLayer(b);
 });
 
@@ -621,7 +623,8 @@ function setView(v) {
   document.querySelectorAll('#views button').forEach(b => b.classList.toggle('on', b.dataset.v === v));
   kids.forEach(m => { m.setIcon(kidIcon(m._s)); applyFilter(m); });
   DATA.dq.forEach(d => dqBadgeOf[d.n].setIcon(badgeIcon(d.count, { care: d.care, text: d.n + ' 大區' }, false, chipsRow(dqCounts(d.n)), attCol(dqCounts(d.n)))));
-  DATA.care.forEach(c => careBadgeOf[c.name].setIcon(badgeIcon(c.count, { care: c.name, text: c.name }, true, chipsRow(careCounts(c)), attCol(careCounts(c)))));
+  // 照顧區名牌只放區名＋人數小字，不放分類小標籤（市中心照顧區很密，避免擠成一團）
+  DATA.care.forEach(c => careBadgeOf[c.name].setIcon(badgeIcon(c.count, { care: c.name, text: c.name }, true, '', attCol(careCounts(c)))));
   buildLegend();
   paintView();
 }
@@ -670,7 +673,8 @@ function paintView() {
 }
 document.getElementById('views').addEventListener('click', e => { const b = e.target.closest('button[data-v]'); if (b) setView(b.dataset.v); });
 if (!DATA.attMeta) document.getElementById('viewsWrap').hidden = true;
-buildLegend();
+// 一打開就顯示出席狀況（綠＝安全、黃＝須注意、紅＝危急並閃爍）；沒有點名資料時才用學習階段
+if (DATA.attMeta) setView('主日'); else buildLegend();
 
 let mode = 'auto';
 function render() {
