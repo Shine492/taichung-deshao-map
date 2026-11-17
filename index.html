@@ -94,10 +94,11 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .dqs { display: flex; flex-direction: column; gap: 3px; margin-top: 7px; }
 .dqs button { font: inherit; font-size: .76rem; border: 1px solid var(--line); background: var(--panel); color: var(--fg); text-align: left;
   border-radius: 8px; padding: 4px 8px; cursor: pointer; font-variant-numeric: tabular-nums;
-  display: grid; grid-template-columns: auto auto 1fr; column-gap: 8px; align-items: baseline; }
+  display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 2px; align-items: baseline; }
 .dqs .dn { font-weight: 700; white-space: nowrap; }
 .dqs .dc { color: var(--muted); white-space: nowrap; }
-.dqs .dl { color: var(--muted); font-size: .72rem; text-align: right; }
+.dqs .dl { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; column-gap: 8px; color: var(--muted); font-size: .72rem; }
+.dqs .pp { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .dqs .dl b { color: var(--accent); font-weight: 800; font-size: .9rem; margin-left: 2px; }
 .dqs button.zero .dn { color: var(--muted); }
 .zone-ft { font-size: .76rem; color: var(--muted); margin-top: 2px; }
@@ -982,7 +983,8 @@ const ledger = document.getElementById('ledger');
   const el = document.createElement('div');
   el.className = 'zone'; el.tabIndex = 0; el.setAttribute('role', 'button');
   const chips = c.dqs.map(n => { const d = DATA.dq.find(x => x.n === n); const k = d ? d.count : 0;
-    const who = [d?.lead ? `聯絡人 <b>${d.lead}</b>` : '', d?.ft ? `全時間 <b>${d.ft}</b>` : ''].filter(Boolean).join('・');
+    // 第二行固定兩欄：聯絡人｜全時間（沒有的話留「—」），每一列對齊、名字不會被拆到下一行
+    const who = `<span class="pp">聯絡人 <b>${d?.lead || '—'}</b></span><span class="pp">全時間 <b>${d?.ft || '—'}</b></span>`;
     return `<button data-dq="${n}" class="${k ? '' : 'zero'}" aria-label="${n} 大區 ${k} 位"><span class="dn">${n} 大區</span><span class="dc">${k} 位</span><span class="dl">${who}</span></button>`; }).join('');
   const fts = ftOf(c.dqs);
   el.innerHTML = `<div class="zone-head"><span class="sw" style="background:${col}"></span>${c.name}照顧區<span class="n">${c.count}</span></div>
