@@ -48,8 +48,9 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .zk { display: inline-block; margin-right: 8px; white-space: nowrap; }
 .zk::before { content: ""; display: inline-block; width: 9px; height: 9px; border-radius: 2px; background: var(--z); border: 1px solid #fff; margin-right: 4px; vertical-align: -1px; }
 /* 危急（紅）區塊持續閃爍；游標指到時停下來方便看清楚 */
-.leaflet-overlay-pane path.blink { animation: zoneblink 1.1s ease-in-out infinite; }
-.leaflet-overlay-pane path.blink.pop { animation: none; }
+/* 危急區塊：打開或切換檢視時閃 5 次就停；被點選的危急區塊才持續閃爍 */
+.leaflet-overlay-pane path.blink { animation: zoneblink 1.1s ease-in-out 5; }
+.leaflet-overlay-pane path.blink.sel { animation: zoneblink 1.1s ease-in-out infinite; }
 @keyframes zoneblink { 0%, 100% { fill-opacity: .72; } 50% { fill-opacity: .12; } }
 .vchip { position: absolute; z-index: 500; top: calc(12px + env(safe-area-inset-top, 0px)); left: 56px; max-width: calc(100% - 260px);
   background: var(--vc); color: #fff; border-radius: 10px; padding: 6px 12px; box-shadow: 0 2px 8px rgba(0,0,0,.2); line-height: 1.35; }
@@ -425,7 +426,7 @@ function showCard(o) {
   areaCard.querySelector('.ac-x').onclick = hideCard;
   const go = areaCard.querySelector('[data-hist]'); if (go) go.onclick = () => window.openHist?.(go.dataset.hist);
 }
-function hideCard() { areaCard.hidden = true; cardFor = null; document.querySelector('.app').classList.remove('carding'); }
+function hideCard() { areaCard.hidden = true; cardFor = null; if (typeof selectShape === 'function') selectShape(null); document.querySelector('.app').classList.remove('carding'); }
 // 用點擊的經緯度判斷點在哪一區（游標移入時區塊會被移到最上層，地圖本身的區塊點擊不可靠）
 function inRing(x, y, r) { let k = false; for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
   const [xi, yi] = r[i], [xj, yj] = r[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) k = !k; } return k; }
@@ -455,6 +456,7 @@ map.on('mouseup click', e => {
   if (!shp) { hideCard(); return; }   // 點到地圖空白處：關掉小卡
   shp.closeTooltip();
   showCard(shp._card());
+  selectShape(shp);
   shp._fly();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('hist').hidden) hideCard(); });
@@ -652,9 +654,21 @@ function zoneStatus(o) {
 }
 function zoneColor(o) { const s = zoneStatus(o); return s ? [ZONE[s], .55] : ['#ffffff', 0]; }
 // 閃爍用 CSS class；區塊重新加進地圖時也要帶著 class
-function setBlink(shp, on) {
-  shp.eachLayer(l => { l.options.className = on ? 'blink' : ''; l.getElement()?.classList.toggle('blink', on); });
+// options.className 也要更新，區塊重新加進地圖（縮放換圖層）時才會帶著 class
+function setCls(shp, cls, on) {
+  shp.eachLayer(l => {
+    const set = new Set((l.options.className || '').split(' ').filter(Boolean));
+    on ? set.add(cls) : set.delete(cls); l.options.className = [...set].join(' ');
+    l.getElement()?.classList.toggle(cls, on);
+  });
 }
+// 重新加上 blink class 讓「閃 5 次」從頭再跑一次
+function setBlink(shp, on) {
+  shp.eachLayer(l => { const el = l.getElement(); if (el) { el.classList.remove('blink'); void el.getBoundingClientRect(); } });
+  setCls(shp, 'blink', on);
+}
+let selShp = null;   // 目前被點選的區塊（危急的話會持續閃）
+function selectShape(shp) { if (selShp && selShp !== shp) setCls(selShp, 'sel', false); selShp = shp; if (shp) setCls(shp, 'sel', true); }
 const attCol = o => view === 'stage' ? null : zoneColor(o)[0];
 function paintView() {
   const app = document.querySelector('.app'), att = view !== 'stage';
@@ -677,7 +691,7 @@ function paintView() {
   chip.hidden = card.hidden = !att;
   if (!att) return;
   const wk = DATA.attMeta.weeks.map(w => w.slice(5).replace('-', '/').replace(/^0/, '')).join('–');
-  chip.innerHTML = `<b>${V().label}出席</b><small>最近 8 週 ${wk}・依穩定比例：<span class="zk" style="--z:${ZONE.安全}">安全 ≥50%</span><span class="zk" style="--z:${ZONE.須注意}">須注意 25–49%</span><span class="zk" style="--z:${ZONE.危急}">危急 &lt;25%（閃爍）</span></small>`;
+  chip.innerHTML = `<b>${V().label}出席</b><small>最近 8 週 ${wk}・依穩定比例：<span class="zk" style="--z:${ZONE.安全}">安全 ≥50%</span><span class="zk" style="--z:${ZONE.須注意}">須注意 25–49%</span><span class="zk" style="--z:${ZONE.危急}">危急 &lt;25%（閃 5 次；點選後持續閃）</span></small>`;
   const o = countsFor(() => true);
   card.innerHTML = `<div class="vc-t">${V().label}出席</div><div class="vc-s">最近 8 週（${wk}）・共 ${DATA.total} 位</div>
     <div class="vc-bar">${ATT_CATS.map(c => `<i style="width:${(o[c.k] / DATA.total * 100).toFixed(1)}%;background:${c.col}" title="${c.k} ${o[c.k]}"></i>`).join('')}</div>
