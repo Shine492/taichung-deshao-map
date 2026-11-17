@@ -308,6 +308,8 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .ac-opt:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 .ac-copy,.h-copy{font:inherit;font-size:.82rem;font-weight:700;display:block;width:100%;margin-top:8px;padding:7px 10px;border:1px dashed var(--line);border-radius:10px;background:var(--chip);color:var(--fg);cursor:pointer}
 .ac-copy:hover,.h-copy:hover{border-color:var(--accent);color:var(--accent)}
+.ac-opts .ac-copy{margin-top:0}
+.ac-opts + .ac-opts{margin-top:6px}
 .h-copy{width:auto;margin:0 0 0 auto;border-radius:999px;padding:5px 14px}
 @media (prefers-reduced-motion: reduce){.leaflet-zoom-anim .leaflet-zoom-animated{transition:none}}
 </style>
@@ -463,13 +465,16 @@ function showCard(o) {
       ${DATA.hist ? `<button class="ac-opt get" data-hist="${o.key}"><b>傳揚得少分析 ›</b><span>申請 → 進入專案</span></button>` : ''}
       ${DATA.attMeta ? `<button class="ac-opt now" data-now><b>成全得少分析 ›</b><span>主日・小排・家聚會</span></button>` : ''}
     </div>
-    <button class="ac-copy" data-copy>📋 一鍵複製本區情形（轉傳用）</button>`;
+    <div class="ac-opts">
+      ${DATA.hist ? `<button class="ac-copy" data-copy="spread">📋 複製傳揚</button>` : ''}
+      ${DATA.attMeta ? `<button class="ac-copy" data-copy="perfect">📋 複製成全</button>` : ''}
+    </div>`;
   areaCard.hidden = false;
   document.querySelector('.app').classList.add('carding');
   areaCard.querySelector('.ac-x').onclick = hideCard;
   const go = areaCard.querySelector('[data-hist]'); if (go) go.onclick = () => window.openHist?.(go.dataset.hist);
   const nw = areaCard.querySelector('[data-now]'); if (nw) nw.onclick = () => openNow(o);
-  areaCard.querySelector('[data-copy]').onclick = e => copyText(areaText(o), e.currentTarget);
+  areaCard.querySelectorAll('[data-copy]').forEach(b => b.onclick = e => copyText(b.dataset.copy === 'spread' ? spreadText(o) : perfectText(o), e.currentTarget));
   const up = areaCard.querySelector('[data-up]'); if (up) up.onclick = () => { const s = careShapes[o.up]; showCard(s._card()); selectShape(s); s._fly(); };
 }
 
@@ -502,25 +507,50 @@ function nowRows(o) {
 const SITE = 'https://shine492.github.io/taichung-deshao-map/';
 const DOT = { 安全: '🟢', 須注意: '🟡', 危急: '🔴' };
 const areaObj = key => { const k = String(key || '').replace(/^hist-?/, '');
-  if (!k) return { title: '全台中', name: '全台中', key: 'hist', count: DATA.total, apps: DATA.appsTotal, filter: () => true };
+  if (!k) return { title: '全台中', name: '全台中', key: 'hist', count: DATA.total, apps: DATA.appsTotal, filter: () => true, dqs: DATA.dq.map(d => d.n) };
   return (/^\d+$/.test(k) ? dqShapes[+k] : careShapes[k])?._card(); };
-function areaText(o) {
-  const t = new Date(), L = [`【${o.title}・得少情形】${t.getFullYear() - 1911}/${t.getMonth() + 1}/${t.getDate()}`, `👥 目前得少 ${o.count} 位`];
-  const h = window.histStats?.(o.key);
-  if (h) {
-    L.push('', '📣 傳揚（2023 年起）', `・申請填表 ${h.apps} 份（今年 ${h.year} 份）`, `・已進入專案 ${h.ent} 位`);
-    if (h.ratio) L.push(`・約每 ${h.ratio < 1 ? '<1' : h.ratio.toFixed(1)} 份申請 → 1 位進入專案`);
-    if (h.waiting) L.push(`・下半年 ${h.waiting} 份申請審核中`);
+const today = () => { const t = new Date(); return `${t.getFullYear() - 1911}/${t.getMonth() + 1}/${t.getDate()}`; };
+const LINE = '━━━━━━━━━━';
+// 傳揚：最優先的一件事放最上面，接著數字、其他建議
+function spreadText(o) {
+  const h = window.histInfo?.(o.key); if (!h) return '';
+  const L = [`【${o.title}・傳揚得少分析】${today()}`, LINE];
+  if (h.low) L.push(`⭐ 最優先：今年申請偏少！`, `今年只有 ${h.year} 份（全台中每個大區平均 ${h.yearAvg.toFixed(1)} 份）`, `→ 請更積極發宣傳單張、邀家長填表`);
+  else if (h.waiting) L.push(`⭐ 最優先：關心審核中的 ${h.waiting} 份申請`, `→ 主動聯繫這些家庭，陪伴到年底梯次進入專案（照比例約可進 ${h.exp < 1 ? '0–1' : Math.round(h.exp)} 位）`);
+  else L.push(`⭐ 最優先：保持發單張的節奏`, `→ 每 ${h.per.toFixed(1)} 份申請約可得著 1 位得少`);
+  L.push(LINE, '', '📊 數字（2023 年起）', `・申請填表 ${h.apps} 份（今年 ${h.year} 份）`, `・已進入專案 ${h.ent} 位`,
+    `・約每 ${h.per.toFixed(1)} 份申請 → 1 位進入專案${h.from ? `（用${h.from}比例推估）` : ''}`);
+  const tips = [`想多得著 1 位得少，約需再多 ${Math.ceil(h.per)} 份申請`];
+  if (h.waiting && h.low) tips.push(`另有 ${h.waiting} 份申請審核中，請主動關心這些家庭`);
+  if (h.lowKids.length) tips.push(`今年申請偏少的大區：${h.lowKids.slice(0, 8).map(k => `${k.n} 大區（${k.y} 份）`).join('、')}${h.lowKids.length > 8 ? ` 等 ${h.lowKids.length} 區` : ''}，請優先加強發單張`);
+  L.push('', '💡 建議', ...tips.map((t, i) => `${i + 1}. ${t}`), '', `🗺 地圖：${SITE}`);
+  return L.join('\n');
+}
+// 成全：最需要加強的聚會＋具體做法放最上面，接著三項數字、其他建議
+function perfectText(o) {
+  if (!DATA.attMeta) return '';
+  const w = attWeeks(), { rows, worst } = nowRows(o);
+  const L = [`【${o.title}・成全得少分析】${today()}`, LINE];
+  if (!o.count) { L.push('⭐ 目前還沒有得少', '→ 先加強傳揚：發宣傳單張、邀家長填表'); return [...L, LINE, '', `🗺 地圖：${SITE}`].join('\n'); }
+  if (!worst) L.push('⭐ 最優先：確認點名', '→ 這一區的得少還沒有點名紀錄');
+  else if (worst.st === '安全') L.push('⭐ 三項聚會都穩定 👍', '→ 繼續保持，鼓勵得少帶同伴來');
+  else {
+    L.push(`⭐ 最優先：${worst.m}（${DOT[worst.st]}${worst.st}，穩定只有 ${worst.c.穩定}／${worst.known} 位）`, ...ADVICE[worst.m][worst.st].map(t => `→ ${t}`));
+    if (worst.c.建立中) L.push(`→ 先關心「建立中」的 ${worst.c.建立中} 位，他們最快能變穩定`);
+    // 照顧區／全台中：點出這一項最危急的大區
+    if (o.dqs && o.dqs.length > 1) {
+      const i = MEET.indexOf(worst.m);
+      const bad = o.dqs.map(n => { const c = attOf(s => s.dq === n, i), k = c.穩定 + c.建立中 + c.需加強; return { n, c, k, st: zoneStatus(c) }; })
+        .filter(x => x.st === '危急').sort((a, b) => a.c.穩定 / a.k - b.c.穩定 / b.k || b.k - a.k);
+      if (bad.length) L.push(`→ ${worst.m}危急的大區：${bad.slice(0, 6).map(x => `${x.n} 大區（${x.c.穩定}／${x.k}）`).join('、')}${bad.length > 6 ? ` 等 ${bad.length} 區` : ''}`);
+    }
   }
-  if (DATA.attMeta && o.count) {
-    const w = attWeeks(), { rows, worst } = nowRows(o);
-    L.push('', `🌱 成全（最近 8 週 ${w[0]}–${w[1]}）`);
-    rows.forEach(x => L.push(`${DOT[x.st] || '⚪'} ${x.m}${x.st ? ' ' + x.st : ''}：穩定 ${x.c.穩定}・建立中 ${x.c.建立中}・需加強 ${x.c.需加強}${x.c.未點名 ? '・未點名 ' + x.c.未點名 : ''}`));
-    if (worst && worst.st !== '安全') L.push('', `👉 最需要加強：${worst.m}`, `建議：${ADVICE[worst.m][worst.st][0]}`);
-    else if (worst) L.push('', '👍 三項聚會都穩定，繼續保持！');
-    L.push('（穩定＝8 週 5 次以上；建立中 3–4 次；需加強 2 次以下）');
-  }
-  L.push('', `🗺 地圖：${SITE}`);
+  L.push(LINE, '', `📊 最近 8 週（${w[0]}–${w[1]}）・共 ${o.count} 位`);
+  rows.forEach(x => L.push(`${DOT[x.st] || '⚪'} ${x.m}${x.st ? ' ' + x.st : ''}：穩定 ${x.c.穩定}・建立中 ${x.c.建立中}・需加強 ${x.c.需加強}`));
+  const tips = rows.filter(x => x !== worst && x.st && x.st !== '安全').map(x => `${x.m}：${ADVICE[x.m][x.st][0]}`);
+  const un = rows[0].c.未點名; if (un) tips.push(`有 ${un} 位沒有點名紀錄，請確認是否漏點`);
+  if (tips.length) L.push('', '💡 其他建議', ...tips.map((t, i) => `${i + 1}. ${t}`));
+  L.push('', '（穩定＝8 週 5 次以上；建立中 3–4 次；需加強 2 次以下）', `🗺 地圖：${SITE}`);
   return L.join('\n');
 }
 function copyText(txt, btn) {
@@ -531,11 +561,11 @@ function copyText(txt, btn) {
     let ok = false; try { ok = document.execCommand('copy'); } catch (e) {} ta.remove(); done(ok); };
   if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(txt).then(() => done(true), fallback); else fallback();
 }
-window.copyArea = (key, btn) => { const o = areaObj(key); if (o) copyText(areaText(o), btn); };
+window.copyArea = (key, kind, btn) => { const o = areaObj(key); if (o) copyText(kind === 'spread' ? spreadText(o) : perfectText(o), btn); };
 function openNow(o) {
   const w = attWeeks(), { rows, worst } = nowRows(o);
   document.getElementById('nowTitle').textContent = `${o.name}・成全得少分析`;
-  document.getElementById('nowCopy').onclick = e => copyText(areaText(o), e.currentTarget);
+  document.getElementById('nowCopy').onclick = e => copyText(perfectText(o), e.currentTarget);
   let head = `<div><span class="big">${o.title}</span>　目前 <b>${o.count}</b> 位得少・最近 8 週（${w[0]}–${w[1]}）</div>`;
   if (!o.count) head += `<div>這一區目前還沒有得少，先看「傳揚得少分析」，多發宣傳單張、邀人填表。</div>`;
   else if (!worst) head += `<div>這一區的得少還沒有點名紀錄，請先確認點名系統有登記。</div>`;
@@ -614,7 +644,7 @@ DATA.care.forEach(c => {
     .on('mouseout', e => e.target.setStyle({ fillOpacity: .28, weight: 2 }))
     ;
   shp._card = () => ({ kicker: '照顧區', title: `${c.name}照顧區`, name: `${c.name}照顧區`, key: `hist-${c.name}`,
-    count: c.count, apps: c.apps, counts: () => careCounts(c), filter: s => c.dqs.includes(s.dq) });
+    count: c.count, apps: c.apps, counts: () => careCounts(c), filter: s => c.dqs.includes(s.dq), dqs: c.dqs });
   shp._fly = () => map.flyToBounds(shp.getBounds(), { padding: [30, 30], duration: .6 });
   careShapes[c.name] = shp; careLayer.addLayer(shp);
   const b = badge(c.label, c.count, { care: c.name, text: c.name }, true, '');
@@ -1081,8 +1111,21 @@ document.getElementById('foot').innerHTML =
   const parse = k => { const m = decodeURIComponent(k || '').replace(/^#/, '').match(/^hist(?:-(.+))?$/);
     return !m ? undefined : !m[1] ? null : /^\d+$/.test(m[1]) ? { level: 'dq', dq: +m[1] } : { level: 'care', care: m[1] }; };
   window.openHist = key => { map.closePopup(); open(parse(key) || null); };
-  window.histStats = key => { const s = parse(key.startsWith('hist') ? key : 'hist'); const sc = s || { level: 'all' }; return stats(scopeDqs(sc), sc.level === 'all'); };
-  $('histCopy').onclick = e => window.copyArea(scope.level === 'all' ? 'hist' : scope.level === 'care' ? `hist-${scope.care}` : `hist-${scope.dq}`, e.currentTarget);
+  // 給「一鍵複製」用：這一區的數字、推估比例、今年申請是否偏少、偏少的大區
+  window.histInfo = key => {
+    const sc = parse(String(key).startsWith('hist') ? key : 'hist') || { level: 'all' }, dqs = scopeDqs(sc);
+    const st = stats(dqs, sc.level === 'all');
+    let r = st.ratio, from = '';
+    if (!(st.ent >= 3 && r >= 1)) {
+      const parent = sc.level === 'dq' ? stats(DATA.care.find(c => c.name === careOf[sc.dq]).dqs, false) : null;
+      if (parent && parent.ent >= 3 && parent.ratio >= 1) { r = parent.ratio; from = `${careOf[sc.dq]}照顧區`; } else { r = CITY.ratio; from = '全台中'; }
+    }
+    const per = Math.max(1, Math.round(r * 10) / 10), yearAvg = CITY.year / allDqs.length, lim = Math.max(1, yearAvg * .5);
+    const lowKids = sc.level === 'dq' ? [] : dqs.map(n => ({ n, y: stats([n], false).year })).filter(k => k.y <= lim).sort((a, b) => a.y - b.y);
+    const low = sc.level === 'dq' ? st.year <= lim : st.year / dqs.length <= lim;
+    return { ...st, per, from, exp: st.waiting / per, yearAvg, low, lowKids, name: scopeName(sc) };
+  };
+  $('histCopy').onclick = e => window.copyArea(scope.level === 'all' ? 'hist' : scope.level === 'care' ? `hist-${scope.care}` : `hist-${scope.dq}`, 'spread', e.currentTarget);
   const s0 = parse(location.hash);
   if (s0 !== undefined) open(s0);
 })();
