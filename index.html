@@ -175,7 +175,7 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .hist-link:hover { background: var(--accent); color: var(--panel); }
 .hist { position: fixed; inset: 0; z-index: 3000; background: var(--bg); overflow-y: auto; }
 .hist[hidden] { display: none; }
-/* 現有得少分析 */
+/* 成全得少分析 */
 .nw-head { font-size: 1rem; line-height: 1.7; }
 .nw-head .big { font-family: var(--font-display); font-weight: 900; font-size: 1.25rem; }
 .nw-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
@@ -344,18 +344,18 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
   </div>
 </div>
 
-<section class="hist" id="now" hidden aria-label="現有得少分析">
+<section class="hist" id="now" hidden aria-label="成全得少分析">
   <div class="h-in">
-    <div class="h-top"><button class="h-back" id="nowClose">‹ 回地圖</button><h2 id="nowTitle">現有得少分析</h2></div>
+    <div class="h-top"><button class="h-back" id="nowClose">‹ 回地圖</button><h2 id="nowTitle">成全得少分析</h2></div>
     <div class="h-card nw-head" id="nowHead"></div>
     <div class="nw-grid" id="nowGrid"></div>
     <div class="nw-note" id="nowNote"></div>
   </div>
 </section>
 
-<section class="hist" id="hist" hidden aria-label="得著得少分析：申請與進入專案歷年比例">
+<section class="hist" id="hist" hidden aria-label="傳揚得少分析：申請與進入專案歷年比例">
   <div class="h-in">
-    <div class="h-top"><button class="h-back" id="histClose">‹ 回地圖</button><h2>得著得少分析・申請與進入專案</h2></div>
+    <div class="h-top"><button class="h-back" id="histClose">‹ 回地圖</button><h2>傳揚得少分析・申請與進入專案</h2></div>
     <nav class="crumb" id="hCrumb" aria-label="範圍"></nav>
     <div class="h-card">
       <div class="h-kpis" id="hKpi"></div>
@@ -446,7 +446,7 @@ function tipDq(d) {
   return `<div class="tip"><div class="k">${d.care || '—'} 照顧區</div><h3>臺中 ${d.n} 大區</h3><div class="big">${d.count} <span class="k">位得少</span></div>${d.count ? viewNote() + chipsList(dqCounts(d.n)) : ''}${appsLine(d.apps)}${xq ? `<ul>${xq}</ul>` : ''}${tipEnd(`hist-${d.n}`, `${d.n} 大區`)}</div>`;
 }
 // 游標說明框只加一行提示；按鈕放在點一下後出現的小卡上
-const tipEnd = (key, name) => !DATA.hist ? '' : `<div class="tip-hint">點一下看${name}的得著／現有得少分析</div>`;
+const tipEnd = (key, name) => !DATA.hist ? '' : `<div class="tip-hint">點一下看${name}的傳揚／成全得少分析</div>`;
 // 點區域：照舊飛過去放大，同時在地圖下方固定一張小卡（不跳頁、不會跑出畫面）
 const areaCard = document.getElementById('areaCard');
 let cardFor = null;
@@ -457,8 +457,8 @@ function showCard(o) {
     ${o.up && careShapes[o.up] ? `<button class="ac-k ac-up" data-up>${o.kicker}・看整個照顧區 ›</button>` : `<div class="ac-k">${o.kicker}</div>`}<div class="ac-h">${o.title}</div>
     <div class="ac-n"><b>${o.count}</b> 位得少・申請填表累計 <b>${o.apps}</b> 份</div>${chips}
     <div class="ac-opts">
-      ${DATA.hist ? `<button class="ac-opt get" data-hist="${o.key}"><b>得著得少分析 ›</b><span>申請 → 進入專案</span></button>` : ''}
-      ${DATA.attMeta ? `<button class="ac-opt now" data-now><b>現有得少分析 ›</b><span>主日・小排・家聚會</span></button>` : ''}
+      ${DATA.hist ? `<button class="ac-opt get" data-hist="${o.key}"><b>傳揚得少分析 ›</b><span>申請 → 進入專案</span></button>` : ''}
+      ${DATA.attMeta ? `<button class="ac-opt now" data-now><b>成全得少分析 ›</b><span>主日・小排・家聚會</span></button>` : ''}
     </div>`;
   areaCard.hidden = false;
   document.querySelector('.app').classList.add('carding');
@@ -468,7 +468,7 @@ function showCard(o) {
   const up = areaCard.querySelector('[data-up]'); if (up) up.onclick = () => { const s = careShapes[o.up]; showCard(s._card()); selectShape(s); s._fly(); };
 }
 
-// ── 現有得少分析：這一區得少的主日／小排／家聚會出席狀況與建議 ──
+// ── 成全得少分析：這一區得少的主日／小排／家聚會出席狀況與建議 ──
 const MEET = ['主日', '小排', '家聚會'];
 function attOf(filter, idx) {
   const o = { 穩定: 0, 建立中: 0, 需加強: 0, 未點名: 0 };
@@ -491,10 +491,10 @@ function openNow(o) {
   const filter = o.filter, w = DATA.attMeta.weeks.map(x => x.slice(5).replace('-', '/').replace(/^0/, ''));
   const rows = MEET.map((m, i) => { const c = attOf(filter, i), known = c.穩定 + c.建立中 + c.需加強;
     return { m, c, known, r: known ? c.穩定 / known : null, st: zoneStatus(c) }; });
-  document.getElementById('nowTitle').textContent = `${o.name}・現有得少分析`;
+  document.getElementById('nowTitle').textContent = `${o.name}・成全得少分析`;
   const ranked = rows.filter(x => x.st).sort((a, b) => a.r - b.r), worst = ranked[0];
   let head = `<div><span class="big">${o.title}</span>　目前 <b>${o.count}</b> 位得少・最近 8 週（${w[0]}–${w[1]}）</div>`;
-  if (!o.count) head += `<div>這一區目前還沒有得少，先看「得著得少分析」，多發宣傳單張、邀人填表。</div>`;
+  if (!o.count) head += `<div>這一區目前還沒有得少，先看「傳揚得少分析」，多發宣傳單張、邀人填表。</div>`;
   else if (!worst) head += `<div>這一區的得少還沒有點名紀錄，請先確認點名系統有登記。</div>`;
   else if (worst.st === '安全') head += `<div>三項聚會都穩定 👍 繼續保持，並鼓勵得少帶同伴來。</div>`;
   else head += `<div>最需要加強：<b style="color:${ZONE[worst.st]}">${worst.m}</b>（穩定 ${worst.c.穩定} / ${worst.known} 位）。建議先從這一項開始。</div>`;
