@@ -212,15 +212,16 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .rb-n { color: var(--muted); }
 .rb-n b { color: var(--fg); font-variant-numeric: tabular-nums; }
 .rb-r { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-top: 4px; }
-.rc { width: 100%; border-collapse: collapse; margin-top: 6px; font-size: .7rem; }
-.rc th, .rc td { padding: 2px 3px; text-align: left; font-weight: 400; color: var(--muted); }
-.rc thead th { font-size: .64rem; }
+.rc { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 8px; font-size: .74rem; }
+.rc col:first-child { width: 40%; }
+.rc th, .rc td { padding: 4px 4px; text-align: left; font-weight: 400; color: var(--muted); }
+.rc thead th { font-size: .64rem; line-height: 1.25; text-align: center; vertical-align: bottom; padding-bottom: 5px; }
 .rc tbody th { font-weight: 700; color: var(--fg); white-space: nowrap; }
-.rc tbody th small { font-weight: 400; color: var(--muted); margin-left: 3px; }
-.rc td { width: 38%; }
-.rc td i { display: inline-block; vertical-align: middle; width: calc(100% - 3.6em); height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
-.rc td i b { display: block; height: 100%; }
-.rc td span { display: inline-block; width: 3.4em; text-align: right; font-weight: 700; color: var(--fg); font-variant-numeric: tabular-nums; }
+.rc tbody th small { font-weight: 400; color: var(--muted); margin-left: 4px; font-size: .64rem; }
+.rc td { text-align: center; font-weight: 700; font-size: .8rem; color: var(--fg); font-variant-numeric: tabular-nums; }
+.rc tbody tr + tr > * { border-top: 1px solid var(--line); }
+.rc tr.tot > * { background: var(--chip); color: var(--accent); font-weight: 900; font-size: .9rem; }
+.rc tr.tot th { font-size: .78rem; }
 .rb-r span { display: flex; flex-direction: column; line-height: 1.25; color: var(--muted); font-size: .66rem; }
 .rb-r em { font-style: normal; font-weight: 900; font-size: 1rem; color: var(--accent); font-variant-numeric: tabular-nums; }
 .rb.big { margin: 4px 0 4px; }
@@ -561,16 +562,18 @@ function ratioBox(dqs, big) {
   const s = baseSum(dqs); if (!s) return '';
   return `<div class="rb${big ? ' big' : ''}" title="基數來源：全台得少統計（六都）；得少人數與得少主日平均（2026 年 1–10 月，每主日平均人數）用點名系統最新資料">
     <div class="rb-n">主日基數 <b>${s.sun}</b>・青少年基數 <b>${s.youth}</b>・得少 <b>${s.kids}</b> 位・得少主日平均 <b>${s.kidSun.toFixed(1)}</b> 人</div>
-    <div class="rb-r"><span><em>${pct(s.kids, s.sun)}</em>得少佔主日基數</span><span><em>${pct(s.kidSun, s.youth)}</em>得少佔青少年基數</span></div>${dqs.length > 1 && dqs.length <= 6 ? ratioCompare(dqs) : dqs.length > 6 ? ratioCompare(dqs, true) : ''}</div>`;
+    ${dqs.length > 1 ? ratioCompare(dqs, dqs.length > 6, s) : `<div class="rb-r"><span><em>${pct(s.kids, s.sun)}</em>得少佔主日基數</span><span><em>${pct(s.kidSun, s.youth)}</em>得少佔青少年基數</span></div>`}</div>`;
 }
 // 照顧區：列出各大區的比例做比較（色條長度＝比例，各欄以最大值為滿格）
-function ratioCompare(dqs, care) {
+function ratioCompare(dqs, care, tot) {
   const rows = care ? DATA.care.map(c => ({ n: c.name, b: baseSum(c.dqs), care: true })).filter(r => r.b)
     : dqs.map(n => ({ n, b: DATA.bases[n] })).filter(r => r.b);
-  const r1 = r => r.b.sun ? r.b.kids / r.b.sun : null, r2 = r => r.b.youth ? r.b.kidSun / r.b.youth : null;
-  const m1 = Math.max(...rows.map(r => r1(r) || 0), 0.0001), m2 = Math.max(...rows.map(r => Math.min(r2(r) || 0, 1.5)), 0.0001);
-  const cell = (v, m, c) => `<td><i><b style="width:${v == null ? 0 : Math.min(100, v / m * 100)}%;background:${c}"></b></i><span>${v == null ? '—' : (v * 100).toFixed(1) + '%'}</span></td>`;
-  return `<table class="rc"><thead><tr><th>${care ? '照顧區' : '大區'}</th><th>得少佔主日基數</th><th>得少佔青少年基數</th></tr></thead><tbody>${rows.sort((a, b) => (r1(b) || 0) - (r1(a) || 0)).map(r => `<tr><th>${r.care ? r.n : r.n + ' 大區'}<small>${r.b.kids} 位</small></th>${cell(r1(r), m1, 'var(--accent)')}${cell(r2(r), m2, '#2f7fc4')}</tr>`).join('')}</tbody></table>`;
+  const r1 = b => b.sun ? b.kids / b.sun : null, r2 = b => b.youth ? b.kidSun / b.youth : null;
+  const f = v => v == null ? '—' : (v * 100).toFixed(1) + '%';
+  const row = (name, b, cls) => `<tr${cls ? ` class="${cls}"` : ''}><th>${name}<small>${b.kids} 位</small></th><td>${f(r1(b))}</td><td>${f(r2(b))}</td></tr>`;
+  return `<table class="rc"><colgroup><col><col><col></colgroup><thead><tr><th></th><th>得少佔<br>主日基數</th><th>得少佔<br>青少年基數</th></tr></thead><tbody>` +
+    row(care ? '全台中' : '本區合計', tot, 'tot') +
+    rows.sort((a, b) => (r1(b.b) || 0) - (r1(a.b) || 0)).map(r => row(r.care ? r.n : r.n + ' 大區', r.b)).join('') + `</tbody></table>`;
 }
 { const el = document.getElementById('cityRatio'); if (el && DATA.bases) el.innerHTML = `<div class="rb-t">全台中（不含金門）</div>` + ratioBox(Object.keys(DATA.bases).map(Number), true); }
 // 負責弟兄／全時間：大區顯示負責弟兄＋全時間；照顧區、全台中列出所轄全時間（不重複）
