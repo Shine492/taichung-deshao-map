@@ -862,7 +862,11 @@ async function showShot(x) {
 }
 document.getElementById('shotX').onclick = () => { document.getElementById('shot').hidden = true; };
 document.getElementById('shot').onclick = e => { if (e.target.id === 'shot') e.target.hidden = true; };
-document.getElementById('shotSave').onclick = () => { if (!shotBlob) return; const a = document.createElement('a'); a.href = URL.createObjectURL(shotBlob); a.download = shotName; document.body.appendChild(a); a.click(); a.remove(); };
+// 在 claude.ai 裡用 downloads 能力存檔（會先跳確認）；GitHub 網站直接下載
+let dlNs = null; try { window.claude?.use?.('downloads').then(n => { dlNs = n; }).catch(() => {}); } catch (e) {}
+document.getElementById('shotSave').onclick = () => { if (!shotBlob) return;
+  if (dlNs) { dlNs.save({ filename: shotName, data: shotBlob }).catch(() => {}); return; }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(shotBlob); a.download = shotName; document.body.appendChild(a); a.click(); a.remove(); };
 let kidsShown = [];
 function kidCard(x, i) {
   const [name, shep, code, yr, std, s, sm, h, t25, t26] = x.k, d = dqOf(x.dq);
