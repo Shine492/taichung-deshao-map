@@ -680,7 +680,7 @@ const f1 = v => v == null ? '—' : v.toFixed(1);
 function kidText(x) {
   const [name, shep, code, yr, std, s, sm, h, t25, t26] = x.k;
   return [`【${name}】${x.dq} 大區${yr ? '・第' + yr + '年' : ''}${code ? '（' + code + '）' : ''}`, `牧養者：${shep || '—'}`, `最低標準：${std || '—'}`,
-    `1–10 月出席：主日 ${s ?? '—'} 次・小排 ${sm ?? '—'} 次・家聚會 ${h ?? '—'} 次`, `🏕 特會：${campText(x.k[10])}`].join('\n');
+    `1–10 月出席：主日 ${s ?? '—'} 次・小排 ${sm ?? '—'} 次・家聚會 ${h ?? '—'} 次`, ...(campText(x.k[10]) ? [`🏕 特會：${campText(x.k[10])}`] : [])].join('\n');
 }
 // 一鍵複製：整區名單（未達標排最前，標出差哪一項）
 function kidsListText(o) {
@@ -710,9 +710,10 @@ function kidCard(x, i) {
 // 1–10 月共 43 週（色條滿格＝每週都到）
 const ATT_WEEKS = 43;
 const CAMPS = ['25 寒', '25 暑', '26 寒', '26 暑'];
-const campRow = c => `<div class="kd-camp"><span class="kd-cl">🏕 特會</span>${CAMPS.map((l, i) => { const v = (c || '----')[i];
-  return `<span class="cp ${v === '參' ? 'on' : v === '取' ? 'x' : v === '替' ? 'w' : ''}">${l}${v === '參' ? ' ✓' : v === '取' ? ' 取消' : v === '替' ? ' 替補' : ''}</span>`; }).join('')}</div>`;
-const campText = c => CAMPS.map((l, i) => { const v = (c || '----')[i]; return v === '參' ? `20${l.replace(' ', '')}✓` : v === '取' ? `20${l.replace(' ', '')}取消` : v === '替' ? `20${l.replace(' ', '')}替補` : ''; }).filter(Boolean).join('、') || '尚未參加';
+// 特會只列出有參加的；一次都沒參加就整列不顯示
+const campOn = c => CAMPS.filter((l, i) => (c || '----')[i] === '參');
+const campRow = c => campOn(c).length ? `<div class="kd-camp"><span class="kd-cl">🏕 特會</span>${campOn(c).map(l => `<span class="cp on">${l} ✓</span>`).join('')}</div>` : '';
+const campText = c => campOn(c).map(l => `20${l.replace(' ', '')}✓`).join('、');
 function openKids(o) {
   const all = kidsOf(o), cnt = t => all.filter(x => t(x.k[4])).length;
   document.getElementById('kidsTitle').textContent = `${o.name}・得少名單與牧養者`;
