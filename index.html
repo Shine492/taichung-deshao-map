@@ -203,6 +203,8 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .kd-top { display: flex; align-items: baseline; gap: 8px; }
 .kd-n { font-size: 1.15rem; font-weight: 800; }
 .kd-y { font-size: .78rem; color: var(--muted); margin-left: auto; white-space: nowrap; }
+.kd-cp { font: inherit; font-size: .8rem; border: 1px solid var(--line); background: var(--chip); border-radius: 8px; padding: 1px 6px; cursor: pointer; white-space: nowrap; }
+.kd-cp:hover { border-color: var(--accent); }
 .kd-s { font-size: .86rem; margin-top: 2px; }
 .kd-s b { color: var(--accent); font-weight: 800; font-size: .98rem; }
 .kd-st { display: inline-block; margin-top: 6px; font-size: .8rem; font-weight: 700; color: #fff; background: var(--z); border-radius: 999px; padding: 2px 10px; }
@@ -393,7 +395,7 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 
 <section class="hist" id="kidsPg" hidden aria-label="得少名單與牧養者">
   <div class="h-in">
-    <div class="h-top"><button class="h-back" id="kidsClose">‹ 回地圖</button><h2 id="kidsTitle">得少名單</h2></div>
+    <div class="h-top"><button class="h-back" id="kidsClose">‹ 回地圖</button><h2 id="kidsTitle">得少名單</h2><button class="h-copy" id="kidsCopy">📋 一鍵複製名單（轉傳用）</button></div>
     <div class="h-card nw-head" id="kidsHead"></div>
     <div id="kidsBody"></div>
     <div class="nw-note" id="kidsNote"></div>
@@ -662,10 +664,31 @@ const kidsOf = o => !DATA.kids || !o.dqs ? [] : o.dqs.flatMap(n => (DATA.kids[n]
 const STD_COL = s => s === '符合' ? ZONE.安全 : s && s.startsWith('未達標') ? ZONE.危急 : '#9aa5a0';
 const STD_RANK = s => s && s.startsWith('未達標') ? 0 : s === '符合' ? 2 : 1;
 const f1 = v => v == null ? '—' : v.toFixed(1);
-function kidCard(k) {
-  const [name, shep, code, yr, std, s, sm, h, t25, t26] = k;
+// 一鍵複製：單一位得少
+function kidText(x) {
+  const [name, shep, code, yr, std, s, sm, h, t25, t26] = x.k;
+  return [`【${name}】${x.dq} 大區${yr ? '・第' + yr + '年' : ''}${code ? '（' + code + '）' : ''}`, `牧養者：${shep || '—'}`, `最低標準：${std || '—'}`,
+    `月平均（1–10月）：主日 ${f1(s)}・小排 ${f1(sm)}・家聚會 ${f1(h)}`, `特會：2025 年 ${t25} 次・2026 年 ${t26} 次`].join('\n');
+}
+// 一鍵複製：整區名單（未達標排最前，標出差哪一項）
+function kidsListText(o) {
+  const all = kidsOf(o), multi = o.dqs.length > 1;
+  const bad = all.filter(x => STD_RANK(x.k[4]) === 0), ok = all.filter(x => STD_RANK(x.k[4]) === 2), un = all.filter(x => STD_RANK(x.k[4]) === 1);
+  const line = (x, extra) => `・${multi ? x.dq + '大區 ' : ''}${x.k[0]}（${x.k[3] ? '第' + x.k[3] + '年' : '—'}）牧養者 ${x.k[1] || '—'}${extra ? '｜' + extra : ''}`;
+  const L = [`【${o.title}・得少名單】${today()}`];
+  if (whoLine(o)) L.push(`👤 ${whoLine(o)}`);
+  L.push(`共 ${all.length} 位：未達標 ${bad.length}・符合 ${ok.length}・無法判斷 ${un.length}`, LINE);
+  if (bad.length) L.push(`⭐ 未達最低標準（優先關心）`, ...bad.sort((a, b) => (b.k[3] || 0) - (a.k[3] || 0)).map(x => line(x, '差 ' + x.k[4].replace('未達標：', ''))));
+  if (ok.length) L.push('', `✅ 符合最低標準`, ...ok.map(x => line(x)));
+  if (un.length) L.push('', `❔ 無法判斷`, ...un.map(x => line(x, x.k[4])));
+  L.push(LINE, '（最低標準每月：第一年家聚會 1；第二年再加召會生活〔小排＋主日〕1；第三年家聚會 1、主日 1、小排＋主日 2。檢查 8–10 月）', `🗺 地圖：${SITE}`);
+  return L.join('\n');
+}
+let kidsShown = [];
+function kidCard(x, i) {
+  const [name, shep, code, yr, std, s, sm, h, t25, t26] = x.k;
   return `<div class="kd" style="--z:${STD_COL(std)}">
-    <div class="kd-top"><span class="kd-n">${name}</span><span class="kd-y">${yr ? '第' + yr + '年' : ''}${code ? '・' + code : ''}</span></div>
+    <div class="kd-top"><span class="kd-n">${name}</span><span class="kd-y">${yr ? '第' + yr + '年' : ''}${code ? '・' + code : ''}</span><button class="kd-cp" data-ki="${i}" title="複製這位得少的資料">📋</button></div>
     <div class="kd-s">牧養者 <b>${shep || '—'}</b></div>
     <span class="kd-st">${std || '—'}</span>
     <div class="kd-m">月平均（1–10月）主日 <b>${f1(s)}</b>・小排 <b>${f1(sm)}</b>・家聚會 <b>${f1(h)}</b><br>特會 2025 年 <b>${t25}</b> 次・2026 年 <b>${t26}</b> 次</div></div>`;
@@ -677,9 +700,12 @@ function openKids(o) {
     <div class="kd-sum"><span style="--z:${ZONE.危急}">未達最低標準 ${cnt(s => s && s.startsWith('未達標'))} 位</span><span style="--z:${ZONE.安全}">符合 ${cnt(s => s === '符合')} 位</span><span style="--z:#9aa5a0">無法判斷 ${cnt(s => !s || (!s.startsWith('未達標') && s !== '符合'))} 位</span></div>`;
   const sorted = list => list.slice().sort((a, b) => STD_RANK(a.k[4]) - STD_RANK(b.k[4]) || (b.k[3] || 0) - (a.k[3] || 0));
   const groups = o.dqs.length > 1 ? o.dqs.map(n => ({ n, list: all.filter(x => x.dq === n) })).filter(g => g.list.length) : [{ n: o.dqs[0], list: all }];
+  kidsShown = [];
   document.getElementById('kidsBody').innerHTML = groups.map(g => { const d = dqOf(g.n);
     return `${o.dqs.length > 1 ? `<div class="kd-sec">${g.n} 大區<small>${g.list.length} 位${d?.lead ? '・負責弟兄 ' + d.lead : ''}</small></div>` : '<div style="height:12px"></div>'}
-      <div class="kd-grid">${sorted(g.list).map(x => kidCard(x.k)).join('')}</div>`; }).join('');
+      <div class="kd-grid">${sorted(g.list).map(x => { kidsShown.push(x); return kidCard(x, kidsShown.length - 1); }).join('')}</div>`; }).join('');
+  document.querySelectorAll('#kidsBody [data-ki]').forEach(b => b.onclick = e => { const btn = e.currentTarget; copyText(kidText(kidsShown[+btn.dataset.ki]), btn); });
+  document.getElementById('kidsCopy').onclick = e => copyText(kidsListText(o), e.currentTarget);
   document.getElementById('kidsNote').innerHTML = `最低標準（每月）：第一年家聚會 1 次；第二年再加召會生活（小排＋主日）1 次；第三年家聚會 1、主日 1、小排＋主日合計 2。檢查 2026 年 8–10 月，每個月都要達到。未達標的排在最前面。資料來源：台中得榮少年 207 位綜合資料（${DATA.kidsAsOf}）。`;
   const sec = document.getElementById('kidsPg'); sec.hidden = false; sec.scrollTo({ top: 0 }); document.body.style.overflow = 'hidden';
   document.getElementById('kidsClose').focus();
