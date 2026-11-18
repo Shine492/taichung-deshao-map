@@ -911,7 +911,7 @@ function openKids(o) {
   document.querySelectorAll('#kidsBody [data-img]').forEach(b => b.onclick = () => showShot(kidsShown[+b.dataset.img]));
   document.getElementById('kidsCopy').onclick = e => copyText(kidsListText(o), e.currentTarget);
   document.querySelectorAll('.kd-cpm [data-m]').forEach(b => b.onclick = e => copyText(meetText(o, +b.dataset.m), e.currentTarget));
-  document.getElementById('kidsNote').innerHTML = `最低標準（每月）：第一年家聚會 1 次；第二年家聚會 1、小排 1；第三年家聚會 1、小排 1、主日 1。標準中的「召會生活」用點名系統能統計的小排計算。檢查 2026 年 8–10 月，每個月都要達到。未達標的排在最前面。資料來源：台中得榮少年 207 位綜合資料（${DATA.kidsAsOf}）。`;
+  document.getElementById('kidsNote').innerHTML = `最低標準（每月）：第一年家聚會 1 次；第二年家聚會 1、小排 1；第三年家聚會 1、小排 1、主日 1。檢查 2026 年 8–10 月，每個月都要達到。未達標的排在最前面。資料來源：台中得榮少年 207 位綜合資料（${DATA.kidsAsOf}）。`;
   const sec = document.getElementById('kidsPg'); sec.hidden = false; sec.scrollTo({ top: 0 }); document.body.style.overflow = 'hidden';
   document.getElementById('kidsClose').focus();
 }
