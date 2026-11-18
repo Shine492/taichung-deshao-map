@@ -149,6 +149,14 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .badge .c { transition: transform .2s ease; }
 .badge.pop .c { transform: scale(1.25); }
 .badge.pop .l { font-size: .85rem; }
+/* 聚焦：沒選大區時名牌只剩區名；選了大區，其他名牌、小人淡出 */
+.badge.mini .l, .badge.mini .sgs { display: none; }
+.badge.mini .c { height: 20px; padding: 0 6px; font-size: .74rem; border-radius: 6px; border-width: 1px; }
+.badge.mini .lead { opacity: .2; }
+.badge.mini .lead::after { display: none; }
+.badge.dim { opacity: .3; }
+.badge:not(.mini) .c { box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+.faint { opacity: .2; pointer-events: none !important; filter: grayscale(.5); }
 .kdot { width: 11px; height: 11px; border-radius: 50%; border: 1.5px solid #fff; box-shadow: 0 0 2px rgba(0,0,0,.35); box-sizing: border-box; }
 .kid svg { display: block; overflow: visible; }
 .kid .arm { transform-box: view-box; }
@@ -1014,7 +1022,7 @@ function applyPop(n, on) {
                       : { fillOpacity: shp._op * .35, weight: 1, color: shp._stroke });
       if (me) { shp.bringToFront(); shp.eachLayer(l => l.getElement()?.classList.add('pop')); }
     } else {
-      shp.setStyle({ fillOpacity: shp._op, weight: 1.5, color: shp._stroke });
+      shp.setStyle({ fillOpacity: baseOp(+k, shp), weight: +k === focusDq ? 3 : 1.5, color: shp._stroke });
       shp.eachLayer(l => l.getElement()?.classList.remove('pop'));
     }
   });
@@ -1063,6 +1071,7 @@ const kidSvg = (col, st, w = 40, h = 51) =>
 const kidsByDq = {}, leaveTimers = {}, greeted = {};
 function greet(n, on) {
   clearTimeout(leaveTimers[n]);
+  if (on && focusDq !== n) return;   // 沒選到的大區，小人不跳出來打岔
   const apply = v => {
     if (!!greeted[n] === v) return; greeted[n] = v;
     (kidsByDq[n] || []).forEach(m => {
@@ -1103,7 +1112,10 @@ DATA.students.forEach(s => {
 let catOn = 'all';
 const legend = document.getElementById('stages');
 const legendTitle = document.getElementById('legendTitle');
-const applyFilter = m => { const el = m.getElement(); if (el) el.style.display = (catOn === 'all' || V().catOf(m._s) === catOn) ? '' : 'none'; };
+let focusDq = null, focusCare = null;   // 目前點選的大區／照顧區
+const applyFilter = m => { const el = m.getElement(); if (!el) return;
+  el.style.display = (catOn === 'all' || V().catOf(m._s) === catOn) ? '' : 'none';
+  el.classList.toggle('faint', focusDq !== m._s.dq); };   // 只有選到的大區的小人清楚顯示
 function buildLegend() {
   const o = countsFor(() => true);
   const cats = V().cats.filter((c, i) => i < V().cats.length - 1 || o[c.k]);
@@ -1135,6 +1147,7 @@ function setView(v) {
   DATA.care.forEach(c => careBadgeOf[c.name].setIcon(badgeIcon(c.count, { care: c.name, text: c.name }, true, '', attCol(careCounts(c)))));
   buildLegend();
   paintView();
+  applyFocus();
   window.__declutter?.();   // 名牌換新後重新避讓
 }
 // 檢視主色＋區塊底色：聚會檢視時，大區／照顧區底色代表「穩定比例」
@@ -1165,7 +1178,27 @@ setTimeout(() => { blinkOn = false;
   Object.values(dqShapes).forEach(s => setCls(s, 'blink', false));
   Object.values(careShapes).forEach(s => setCls(s, 'blink', false)); }, 10500);
 let selShp = null;   // 目前被點選的區塊
-function selectShape(shp) { selShp = shp; }
+function selectShape(shp) {
+  selShp = shp; focusDq = null; focusCare = null;
+  for (const [k, s] of Object.entries(dqShapes)) if (s === shp) focusDq = +k;
+  for (const [k, s] of Object.entries(careShapes)) if (s === shp) focusCare = k;
+  applyFocus();
+}
+const inFocusCare = n => !focusCare || DATA.care.find(c => c.name === focusCare)?.dqs.includes(n);
+const baseOp = (n, shp) => focusDq != null && n !== focusDq ? shp._op * .35 : shp._op;
+// 名牌：選到的大區顯示完整（人數＋分類），其他只剩區名；不在焦點內的再淡出
+function badgeFocus() {
+  DATA.dq.forEach(d => { const el = dqBadgeOf[d.n]?.getElement()?.firstElementChild; if (!el) return;
+    const me = focusDq === d.n;
+    el.classList.toggle('mini', !me);
+    el.classList.toggle('dim', (focusDq != null && !me) || !inFocusCare(d.n)); });
+}
+function applyFocus() {
+  Object.entries(dqShapes).forEach(([k, s]) => s.setStyle({ fillOpacity: baseOp(+k, s), weight: +k === focusDq ? 3 : 1.5 }));
+  if (focusDq != null) dqShapes[focusDq].bringToFront();
+  kids.forEach(applyFilter);
+  window.__declutter?.();
+}
 const attCol = o => view === 'stage' ? null : zoneColor(o)[0];
 function paintView() {
   const app = document.querySelector('.app'), att = view !== 'stage';
@@ -1218,6 +1251,7 @@ map.on('zoomend', render); render();
 function declutter() {
   const group = map.hasLayer(careBadges) ? careBadges : map.hasLayer(dqBadges) ? dqBadges : null;
   if (!group) return;
+  if (group === dqBadges) badgeFocus();   // 先套上精簡／淡出，再量尺寸避讓
   const items = [];
   group.eachLayer(m => {
     const el = m.getElement()?.firstElementChild; if (!el) return;
