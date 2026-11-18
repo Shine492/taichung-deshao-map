@@ -406,7 +406,7 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .ac-opt:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
 .ac-copy,.h-copy{font:inherit;font-size:.82rem;font-weight:700;display:block;width:100%;margin-top:8px;padding:7px 10px;border:1px dashed var(--line);border-radius:10px;background:var(--chip);color:var(--fg);cursor:pointer}
 .ac-copy:hover,.h-copy:hover{border-color:var(--accent);color:var(--accent)}
-/* 得少建立、得少牧養各自一塊：分析按鈕＋只複製這一項的按鈕 */
+/* 得少開拓、得少牧養各自一塊：分析按鈕＋只複製這一項的按鈕 */
 .ac-box{display:flex;flex-direction:column;gap:6px;padding:6px;border-radius:12px}
 .ac-box.get{background:color-mix(in srgb,var(--c-ent) 10%,var(--panel))}
 .ac-box.now{background:color-mix(in srgb,var(--accent) 10%,var(--panel))}
@@ -478,9 +478,9 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
   </div>
 </section>
 
-<section class="hist" id="hist" hidden aria-label="得少建立分析：申請與進入專案歷年比例">
+<section class="hist" id="hist" hidden aria-label="得少開拓分析：申請與進入專案歷年比例">
   <div class="h-in">
-    <div class="h-top"><button class="h-back" id="histClose">‹ 回地圖</button><h2>得少建立分析・申請與進入專案</h2><button class="h-copy" id="histCopy">📋 只複製得少建立重點（轉傳用）</button></div>
+    <div class="h-top"><button class="h-back" id="histClose">‹ 回地圖</button><h2>得少開拓分析・申請與進入專案</h2><button class="h-copy" id="histCopy">📋 只複製得少開拓重點（轉傳用）</button></div>
     <nav class="crumb" id="hCrumb" aria-label="範圍"></nav>
     <div class="h-card">
       <div class="h-kpis" id="hKpi"></div>
@@ -583,7 +583,7 @@ function tipDq(d) {
   return `<div class="tip"><div class="k">${d.care || '—'} 照顧區</div><h3>臺中 ${d.n} 大區</h3>${who ? `<div class="k" style="margin:2px 0 4px">${who}</div>` : ''}<div class="big">${d.count} <span class="k">位得少</span></div>${d.count ? viewNote() + chipsList(dqCounts(d.n)) : ''}${appsLine(d.apps)}${xq ? `<ul>${xq}</ul>` : ''}${tipEnd(`hist-${d.n}`, `${d.n} 大區`)}</div>`;
 }
 // 游標說明框只加一行提示；按鈕放在點一下後出現的小卡上
-const tipEnd = (key, name) => !DATA.hist ? '' : `<div class="tip-hint">點一下看${name}的得少建立／得少牧養分析</div>`;
+const tipEnd = (key, name) => !DATA.hist ? '' : `<div class="tip-hint">點一下看${name}的得少開拓／得少牧養分析</div>`;
 // 點區域：照舊飛過去放大，同時在地圖下方固定一張小卡（不跳頁、不會跑出畫面）
 const areaCard = document.getElementById('areaCard');
 let cardFor = null;
@@ -631,8 +631,8 @@ function showCard(o) {
     ${whoLine(o) ? `<div class="ac-p">${whoLine(o, true)}</div>` : ''}
     <div class="ac-n"><b>${o.count}</b> 位得少・申請填表累計 <b>${o.apps}</b> 份</div>${chips}${o.dqs ? ratioBox(o.dqs) : ''}
     <div class="ac-opts">
-      ${DATA.hist ? `<div class="ac-box get"><button class="ac-opt get" data-hist="${o.key}"><b>得少建立分析 ›</b><span>申請 → 進入專案</span></button>
-        <button class="ac-copy" data-copy="spread">📋 只複製得少建立重點</button></div>` : ''}
+      ${DATA.hist ? `<div class="ac-box get"><button class="ac-opt get" data-hist="${o.key}"><b>得少開拓分析 ›</b><span>申請 → 進入專案</span></button>
+        <button class="ac-copy" data-copy="spread">📋 只複製得少開拓重點</button></div>` : ''}
       ${DATA.attMeta ? `<div class="ac-box now"><button class="ac-opt now" data-now><b>得少牧養分析 ›</b><span>主日・小排・家聚會</span></button>
         <button class="ac-copy" data-copy="perfect">📋 只複製得少牧養重點</button></div>` : ''}
     </div>
@@ -688,10 +688,10 @@ const areaObj = key => { const k = String(key || '').replace(/^hist-?/, '');
   return (/^\d+$/.test(k) ? dqShapes[+k] : careShapes[k])?._card(); };
 const today = () => { const t = new Date(); return `${t.getFullYear() - 1911}/${t.getMonth() + 1}/${t.getDate()}`; };
 const LINE = '━━━━━━━━━━';
-// 得少建立：最優先的一件事放最上面，接著數字、其他建議
+// 得少開拓：最優先的一件事放最上面，接著數字、其他建議
 function spreadText(o) {
   const h = window.histInfo?.(o.key); if (!h) return '';
-  const L = [`【${o.title}・得少建立分析】${today()}`, ...(whoLine(o) ? [`👤 ${whoLine(o)}`] : []), LINE];
+  const L = [`【${o.title}・得少開拓分析】${today()}`, ...(whoLine(o) ? [`👤 ${whoLine(o)}`] : []), LINE];
   if (h.low) L.push(`⭐ 最優先：今年申請偏少！`, `今年只有 ${h.year} 份（全台中每個大區平均 ${h.yearAvg.toFixed(1)} 份）`, `→ 請更積極發宣傳單張、邀家長填表`);
   else if (h.waiting) L.push(`⭐ 最優先：關心審核中的 ${h.waiting} 份申請`, `→ 主動聯繫這些家庭，陪伴到年底梯次進入專案（照比例約可進 ${h.exp < 1 ? '0–1' : Math.round(h.exp)} 位）`);
   else L.push(`⭐ 最優先：保持發單張的節奏`, `→ 每 ${h.per.toFixed(1)} 份申請約可得著 1 位得少`);
@@ -708,7 +708,7 @@ function perfectText(o) {
   if (!DATA.attMeta) return '';
   const w = attWeeks(), { rows, worst } = nowRows(o);
   const L = [`【${o.title}・得少牧養分析】${today()}`, ...(whoLine(o) ? [`👤 ${whoLine(o)}`] : []), LINE];
-  if (!o.count) { L.push('⭐ 目前還沒有得少', '→ 先加強得少建立：發宣傳單張、邀家長填表'); return [...L, LINE, '', `🗺 地圖：${SITE}`].join('\n'); }
+  if (!o.count) { L.push('⭐ 目前還沒有得少', '→ 先加強得少開拓：發宣傳單張、邀家長填表'); return [...L, LINE, '', `🗺 地圖：${SITE}`].join('\n'); }
   if (!worst) L.push('⭐ 最優先：確認點名', '→ 這一區的得少還沒有點名紀錄');
   else if (worst.st === '安全') L.push('⭐ 三項聚會都穩定 👍', '→ 繼續保持，鼓勵得少帶同伴來');
   else {
@@ -744,7 +744,7 @@ function openNow(o) {
   document.getElementById('nowTitle').textContent = `${o.name}・得少牧養分析`;
   document.getElementById('nowCopy').onclick = e => copyText(perfectText(o), e.currentTarget);
   let head = `<div><span class="big">${o.title}</span>　目前 <b>${o.count}</b> 位得少・最近 8 週（${w[0]}–${w[1]}）</div>`;
-  if (!o.count) head += `<div>這一區目前還沒有得少，先看「得少建立分析」，多發宣傳單張、邀人填表。</div>`;
+  if (!o.count) head += `<div>這一區目前還沒有得少，先看「得少開拓分析」，多發宣傳單張、邀人填表。</div>`;
   else if (!worst) head += `<div>這一區的得少還沒有點名紀錄，請先確認點名系統有登記。</div>`;
   else if (worst.st === '安全') head += `<div>三項聚會都穩定 👍 繼續保持，並鼓勵得少帶同伴來。</div>`;
   else head += `<div>最需要加強：<b style="color:${ZONE[worst.st]}">${worst.m}</b>（穩定 ${worst.c.穩定} / ${worst.known} 位）。建議先從這一項開始。</div>`;
