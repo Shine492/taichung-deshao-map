@@ -871,10 +871,11 @@ let kidsShown = [];
 function kidCard(x, i) {
   const [name, shep, code, yr, std, s, sm, h, t25, t26] = x.k, d = dqOf(x.dq);
   return `<div class="kd" style="--z:${STD_COL(std)}">
-    <div class="kd-top"><span class="kd-n">${name}</span><span class="kd-y">${yr ? '第' + yr + '年' : ''}${code ? '・' + code : ''}</span>
+    <div class="kd-top"><span class="kd-n">${name}</span><span class="kd-y">${yr ? '第' + yr + '年' : ''}</span>
       <span class="kd-btns"><button class="kd-cp" data-ki="${i}" title="複製這位得少的資料">📋</button><button class="kd-cp" data-img="${i}" title="做成圖片（可存檔、轉傳）">📷</button><button class="kd-cp kd-ln" data-line="${i}" title="用 LINE 傳送文字">LINE</button></span></div>
-    <div class="kd-s">牧養者 <b>${shep || '—'}</b><span class="kd-bap">${bapText(x.k[13])}</span></div>
+    <div class="kd-s">牧養者 <b>${shep || '—'}</b></div>
     <div class="kd-who">負責弟兄 <b>${d?.lead || '—'}</b>・全時間 <b>${d?.ft || '—'}</b></div>
+    <div class="kd-who">${bapText(x.k[13]).slice(1)}${code ? '・' + code : ''}</div>
     <span class="kd-st">${std || '—'}</span>
     <div class="kd-att"><div class="kd-cap"><span>每月平均（${avgSpan(x.k[11])}）</span><span>近 8 週</span></div>
       ${[['主日', s, '#d98a1f'], ['小排', sm, '#2f7fc4'], ['家聚會', h, '#c9506e']].map(([l, v, c], j) => { const a8 = x.k[12] ? x.k[12][j] : null, ct = cat8(a8);
