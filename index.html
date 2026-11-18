@@ -481,13 +481,13 @@ const tipEnd = (key, name) => !DATA.hist ? '' : `<div class="tip-hint">點一下
 // 點區域：照舊飛過去放大，同時在地圖下方固定一張小卡（不跳頁、不會跑出畫面）
 const areaCard = document.getElementById('areaCard');
 let cardFor = null;
-// 聯絡人／全時間：大區顯示聯絡人＋全時間；照顧區、全台中列出所轄全時間（不重複）
+// 負責弟兄／全時間：大區顯示負責弟兄＋全時間；照顧區、全台中列出所轄全時間（不重複）
 const dqOf = n => DATA.dq.find(x => x.n === n);
 const ftOf = dqs => [...new Set(dqs.map(n => dqOf(n)?.ft).filter(Boolean))];
 function whoLine(o, html) {
   const B = t => html ? `<b>${t}</b>` : t;
   if (o.dqs && o.dqs.length === 1) { const d = dqOf(o.dqs[0]);
-    return [d?.lead ? `聯絡人 ${B(d.lead)}` : '', d?.ft ? `全時間 ${B(d.ft)}` : ''].filter(Boolean).join('・'); }
+    return [d?.lead ? `負責弟兄 ${B(d.lead)}` : '', d?.ft ? `全時間 ${B(d.ft)}` : ''].filter(Boolean).join('・'); }
   if (o.dqs && o.dqs.length <= 6) { const f = ftOf(o.dqs); return f.length ? `全時間 ${f.map(B).join('、')}` : ''; }
   return '';
 }
@@ -983,8 +983,8 @@ const ledger = document.getElementById('ledger');
   const el = document.createElement('div');
   el.className = 'zone'; el.tabIndex = 0; el.setAttribute('role', 'button');
   const chips = c.dqs.map(n => { const d = DATA.dq.find(x => x.n === n); const k = d ? d.count : 0;
-    // 第二行固定兩欄：聯絡人｜全時間（沒有的話留「—」），每一列對齊、名字不會被拆到下一行
-    const who = `<span class="pp">聯絡人 <b>${d?.lead || '—'}</b></span><span class="pp">全時間 <b>${d?.ft || '—'}</b></span>`;
+    // 第二行固定兩欄：負責弟兄｜全時間（沒有的話留「—」），每一列對齊、名字不會被拆到下一行
+    const who = `<span class="pp">負責弟兄 <b>${d?.lead || '—'}</b></span><span class="pp">全時間 <b>${d?.ft || '—'}</b></span>`;
     return `<button data-dq="${n}" class="${k ? '' : 'zero'}" aria-label="${n} 大區 ${k} 位"><span class="dn">${n} 大區</span><span class="dc">${k} 位</span><span class="dl">${who}</span></button>`; }).join('');
   const fts = ftOf(c.dqs);
   el.innerHTML = `<div class="zone-head"><span class="sw" style="background:${col}"></span>${c.name}照顧區<span class="n">${c.count}</span></div>
