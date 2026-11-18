@@ -244,6 +244,25 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 .kd-camp .cp.w { color: #9a6a00; border-color: #e0a526; }
 .kd-cp { font: inherit; font-size: .8rem; border: 1px solid var(--line); background: var(--chip); border-radius: 8px; padding: 1px 6px; cursor: pointer; white-space: nowrap; }
 .kd-cp:hover { border-color: var(--accent); }
+.kd-btns { margin-left: auto; display: flex; gap: 4px; }
+.kd-y { margin-left: 0; }
+.kd-ln { background: #06c755 !important; color: #fff; border-color: #06c755 !important; font-weight: 800; }
+.kd-who { font-size: .76rem; color: var(--muted); margin-top: 1px; }
+.kd-who b { color: var(--fg); }
+.kd-cpm { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; font-size: .82rem; color: var(--muted); }
+.kd-cpm button { font: inherit; font-size: .82rem; font-weight: 700; border: 1px dashed var(--line); border-radius: 999px; background: var(--chip); color: var(--fg); padding: 4px 12px; cursor: pointer; }
+.kd-cpm button:hover { border-color: var(--accent); color: var(--accent); }
+.theme { float: right; display: inline-flex; border: 1px solid var(--line); border-radius: 999px; padding: 2px; background: var(--chip); margin: 2px 0 6px 8px; }
+.theme button { font: inherit; font-size: .7rem; border: 0; background: none; color: var(--muted); padding: 3px 7px; border-radius: 999px; cursor: pointer; white-space: nowrap; }
+.theme button.on { background: var(--panel); color: var(--fg); font-weight: 700; box-shadow: 0 1px 2px rgba(0,0,0,.15); }
+.shot { position: fixed; inset: 0; z-index: 5000; background: rgba(0,0,0,.6); display: flex; align-items: center; justify-content: center; padding: 16px; }
+.shot[hidden] { display: none; }
+.shot-in { background: var(--panel); border-radius: 14px; padding: 12px; max-width: 420px; width: 100%; max-height: 100%; overflow-y: auto; overflow-x: hidden; box-sizing: border-box; }
+.shot-in img { width: 100%; display: block; border-radius: 8px; border: 1px solid var(--line); }
+.shot-in p { font-size: .8rem; color: var(--muted); margin: 8px 0; text-align: center; }
+.shot-b { display: flex; gap: 6px; }
+.shot-b button { flex: 1; font: inherit; font-size: .86rem; font-weight: 700; padding: 8px; border-radius: 10px; border: 1px solid var(--line); background: var(--chip); color: var(--fg); cursor: pointer; }
+.shot-b button.pri { background: #06c755; border-color: #06c755; color: #fff; }
 .kd-s { font-size: .86rem; margin-top: 2px; }
 .kd-s b { color: var(--accent); font-weight: 800; font-size: .98rem; }
 .kd-st { display: inline-block; margin-top: 6px; font-size: .8rem; font-weight: 700; color: #fff; background: var(--z); border-radius: 999px; padding: 2px 10px; }
@@ -401,6 +420,7 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 <div class="app">
   <aside>
     <div>
+      <div class="theme" id="theme" role="group" aria-label="主題"><button data-t="light">☀️ 淺色</button><button data-t="dark">🌙 深色</button><button data-t="auto">跟系統</button></div>
       <h1>台中得少分布圖</h1>
       <div class="sub">台中專案內得榮少年・各照顧區與大區人數<br>資料：<span id="rosterName"></span></div>
     </div>
@@ -437,11 +457,17 @@ h1 { font-family: var(--font-display); font-weight: 900; font-size: 1.6rem; marg
 <section class="hist" id="kidsPg" hidden aria-label="得少名單與牧養者">
   <div class="h-in">
     <div class="h-top"><button class="h-back" id="kidsClose">‹ 回地圖</button><h2 id="kidsTitle">得少名單</h2><button class="h-copy" id="kidsCopy">📋 一鍵複製名單（轉傳用）</button></div>
+    <div class="kd-cpm"><span>分類複製：</span><button data-m="0">📋 主日情形</button><button data-m="1">📋 小排情形</button><button data-m="2">📋 家聚會情形</button></div>
     <div class="h-card nw-head" id="kidsHead"></div>
     <div id="kidsBody"></div>
     <div class="nw-note" id="kidsNote"></div>
   </div>
 </section>
+<div class="shot" id="shot" hidden role="dialog" aria-label="得少資料圖片"><div class="shot-in">
+  <img id="shotImg" alt="得少資料圖片">
+  <p>手機可長按圖片儲存，或按下方按鈕轉傳</p>
+  <div class="shot-b"><button class="pri" id="shotShare">分享圖片（LINE…）</button><button id="shotSave">下載圖片</button><button id="shotX">關閉</button></div>
+</div></div>
 
 <section class="hist" id="now" hidden aria-label="成全得少分析">
   <div class="h-in">
@@ -477,6 +503,17 @@ const COLORS = { '南一':'#c8414f','南二':'#e0773a','南三':'#bf9420','北�
   '西一':'#24845a','西二':'#6aab5f','中一':'#73479b','中二':'#a074c4','中三':'#bb5192' };
 const DETAIL_ZOOM = 11.25;
 const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+// 主題：淺色／深色／跟系統（記在這台裝置的瀏覽器）
+const THEME_KEY = 'deshaoTheme';
+function applyTheme(t) {
+  if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t; else delete document.documentElement.dataset.theme;
+  document.querySelectorAll('#theme button').forEach(b => b.classList.toggle('on', b.dataset.t === (t || 'auto')));
+  try { base.setStyle({ color: cssVar('--land-line'), fillColor: cssVar('--land') }); } catch (e) {}
+}
+{ let t0 = 'auto'; try { t0 = localStorage.getItem(THEME_KEY) || 'auto'; } catch (e) {}
+  applyTheme(t0);
+  document.querySelectorAll('#theme button').forEach(b => b.onclick = () => { applyTheme(b.dataset.t); try { localStorage.setItem(THEME_KEY, b.dataset.t); } catch (e) {} });
+  try { matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyTheme(document.documentElement.dataset.theme || 'auto')); } catch (e) {} }
 
 const map = L.map('map', { zoomSnap: .25, zoomDelta: 1, wheelPxPerZoomLevel: 28, wheelDebounceTime: 15,
   attributionControl: false, preferCanvas: false, minZoom: 8.5, maxZoom: 16 });
@@ -734,7 +771,9 @@ const f1 = v => v == null ? '—' : v.toFixed(1);
 // 一鍵複製：單一位得少
 function kidText(x) {
   const [name, shep, code, yr, std, s, sm, h, t25, t26] = x.k;
-  return [`【${name}】${x.dq} 大區${yr ? '・第' + yr + '年' : ''}${code ? '（' + code + '）' : ''}`, `牧養者：${shep || '—'}`, `最低標準：${std || '—'}`,
+  const d = dqOf(x.dq);
+  return [`【${name}】${x.dq} 大區${yr ? '・第' + yr + '年' : ''}${code ? '（' + code + '）' : ''}`, `牧養者：${shep || '—'}`,
+    `負責弟兄：${d?.lead || '—'}・全時間：${d?.ft || '—'}`, `最低標準：${std || '—'}`,
     x.k[13] ? `受浸：${x.k[13].slice(0, 4)}/${+x.k[13].slice(4, 6)}/${+x.k[13].slice(6, 8)}` : '受浸：尚未受浸',
     `近 8 週：${['主日', '小排', '家聚會'].map((l, j) => { const a = x.k[12] ? x.k[12][j] : null; return `${l} ${cat8(a).k}${a != null ? '（' + a + ' 次）' : ''}`; }).join('・')}`,
     `每月平均（${avgSpan(x.k[11])}）：主日 ${s == null ? '—' : s.toFixed(1)} 次・小排 ${sm == null ? '—' : sm.toFixed(1)} 次・家聚會 ${h == null ? '—' : h.toFixed(1)} 次`, ...(campText(x.k[10]) ? [`🏕 特會：${campText(x.k[10])}`] : [])].join('\n');
@@ -753,12 +792,85 @@ function kidsListText(o) {
   L.push(LINE, '（最低標準每月：第一年家聚會 1；第二年再加召會生活〔小排＋主日〕1；第三年家聚會 1、主日 1、小排＋主日 2。檢查 8–10 月）', `🗺 地圖：${SITE}`);
   return L.join('\n');
 }
+// 分類複製：只看一項聚會（主日／小排／家聚會），依近 8 週分組，需加強排最前
+function meetText(o, j) {
+  const m = MEET[j], all = kidsOf(o), multi = o.dqs.length > 1;
+  const a8 = x => x.k[12] ? x.k[12][j] : null, avg = x => x.k[5 + j];
+  const G = [['需加強', '🔴', '8 週 2 次以下'], ['建立中', '🟡', '3–4 次'], ['穩定', '🟢', '5 次以上'], ['未點名', '⚪', '點名系統沒有紀錄']]
+    .map(([k, e, r]) => ({ k, e, r, list: all.filter(x => cat8(a8(x)).k === k).sort((a, b) => (a8(a) ?? -1) - (a8(b) ?? -1) || (b.k[3] || 0) - (a.k[3] || 0)) }));
+  const c = Object.fromEntries(G.map(g => [g.k, g.list.length])), st = zoneStatus(c), known = c.穩定 + c.建立中 + c.需加強;
+  const L = [`【${o.title}・${m}情形】${today()}`];
+  if (whoLine(o)) L.push(`👤 ${whoLine(o)}`);
+  L.push(`共 ${all.length} 位：${G.filter(g => g.list.length).map(g => `${g.e}${g.k} ${g.list.length}`).join('・')}`);
+  if (st) L.push(`${DOT[st]} 整體${st}（穩定 ${c.穩定}／${known} 位）`, LINE, `⭐ 建議`, ...ADVICE[m][st].map(t => `→ ${t}`));
+  if (st && st !== '安全' && c.建立中) L.push(`→ 先關心「建立中」的 ${c.建立中} 位，他們最快能變穩定`);
+  L.push(LINE);
+  G.filter(g => g.list.length).forEach(g => L.push('', `${g.e} ${g.k}（${g.r}）`, ...g.list.map(x =>
+    `・${multi ? x.dq + '大區 ' : ''}${x.k[0]}（${x.k[3] ? '第' + x.k[3] + '年' : '—'}）牧養者 ${x.k[1] || '—'}${a8(x) == null ? '' : `｜8 週 ${a8(x)} 次・月平均 ${avg(x) == null ? '—' : avg(x).toFixed(1)} 次`}`)));
+  L.push('', LINE, `（近 8 週 ${attWeeks()[0]}–${attWeeks()[1]}；月平均＝2026 年 1–10 月，或從進入專案的月份起算）`, `🗺 地圖：${SITE}`);
+  return L.join('\n');
+}
+// LINE：手機直接開 LINE 選聊天室；電腦開 LINE 分享頁
+const shareLine = txt => window.open('https://line.me/R/share?text=' + encodeURIComponent(txt), '_blank', 'noopener');
+// 圖片：一律用淺色畫，貼到 LINE 清楚好讀
+async function kidImage(x) {
+  try { await document.fonts?.ready; } catch (e) {}
+  const [name, shep, code, yr, std, s, sm, h] = x.k, d = dqOf(x.dq), camps = campOn(x.k[10]);
+  const W = 640, S = 2, F = '"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif', FG = '#1d2a26', MU = '#5d6b66', AC = '#1f6f5c';
+  const cv = document.createElement('canvas'); cv.width = W * S; cv.height = 900 * S;
+  const g = cv.getContext('2d'); g.scale(S, S);
+  const rr = (x0, y0, w, hh, r, col) => { g.beginPath(); g.moveTo(x0 + r, y0); g.arcTo(x0 + w, y0, x0 + w, y0 + hh, r); g.arcTo(x0 + w, y0 + hh, x0, y0 + hh, r); g.arcTo(x0, y0 + hh, x0, y0, r); g.arcTo(x0, y0, x0 + w, y0, r); g.closePath(); g.fillStyle = col; g.fill(); };
+  const T = (t, x0, y0, font, col, al = 'left') => { g.font = font; g.fillStyle = col; g.textAlign = al; g.fillText(t, x0, y0); return g.measureText(t).width; };
+  const pill = (t, x0, y0, bg, size = 17, al = 'left') => { g.font = `bold ${size}px ${F}`; const w = g.measureText(t).width + size * 1.2; const L0 = al === 'right' ? x0 - w : x0;
+    rr(L0, y0 - size * 1.15, w, size * 1.7, size * .85, bg); T(t, L0 + size * .6, y0, `bold ${size}px ${F}`, '#fff'); return w; };
+  const parts = (y0, arr) => { let x0 = 34; arr.forEach(([t, f, c]) => { x0 += T(t, x0, y0, f, c); }); };
+  let y = 62;
+  const nw = T(name, 34, y, `900 42px ${F}`, FG);
+  T(`${x.dq} 大區${yr ? '・第' + yr + '年' : ''}`, 34 + nw + 14, y, `bold 21px ${F}`, MU);
+  if (code) T(code, W - 30, y, `16px ${F}`, MU, 'right');
+  y += 42; parts(y, [['牧養者 ', `18px ${F}`, MU], [shep || '—', `bold 23px ${F}`, AC]]);
+  y += 34; parts(y, [['負責弟兄 ', `17px ${F}`, MU], [d?.lead || '—', `bold 19px ${F}`, FG], ['　全時間 ', `17px ${F}`, MU], [d?.ft || '—', `bold 19px ${F}`, FG]]);
+  y += 32; T(x.k[13] ? `受浸 ${x.k[13].slice(0, 4)}/${+x.k[13].slice(4, 6)}/${+x.k[13].slice(6, 8)}` : '尚未受浸', 34, y, `17px ${F}`, MU);
+  y += 46; pill(std || '—', 34, y, STD_COL(std), 18);
+  y += 30; g.fillStyle = '#d9dfdb'; g.fillRect(34, y, W - 68, 1);
+  y += 30; T(`每月平均（${avgSpan(x.k[11])}）`, 34, y, `15px ${F}`, MU); T('近 8 週', W - 34, y, `15px ${F}`, MU, 'right');
+  [['主日', s, '#d98a1f'], ['小排', sm, '#2f7fc4'], ['家聚會', h, '#c9506e']].forEach(([l, v, c], j) => {
+    y += 46; const a8 = x.k[12] ? x.k[12][j] : null, ct = cat8(a8);
+    T(l, 34, y, `bold 20px ${F}`, FG);
+    rr(110, y - 12, 260, 12, 6, '#e3e8e4'); if (v) rr(110, y - 12, Math.max(12, Math.min(1, v / PER_MONTH) * 260), 12, 6, c);
+    T(v == null ? '—' : v.toFixed(1) + ' 次', 470, y, `bold 20px ${F}`, FG, 'right');
+    pill(`${ct.k}${a8 != null ? ' ' + a8 + ' 次' : ''}`, W - 34, y, ct.col, 16, 'right');
+  });
+  if (camps.length) { y += 50; let x0 = 34 + T('🏕 特會', 34, y, `bold 18px ${F}`, '#9a6a00') + 12; camps.forEach(l => { x0 += pill(l + ' ✓', x0, y, '#e0a526', 15) + 8; }); }
+  y += 30; g.fillStyle = '#d9dfdb'; g.fillRect(34, y, W - 68, 1);
+  y += 26; T(`台中得少分布圖・${today()}`, 34, y, `14px ${F}`, MU); T('近 8 週：穩定 5 次↑・建立中 3–4・需加強 2↓', W - 34, y, `14px ${F}`, MU, 'right');
+  const H = y + 22, out = document.createElement('canvas'); out.width = W * S; out.height = H * S;
+  const o2 = out.getContext('2d'); o2.fillStyle = '#ffffff'; o2.fillRect(0, 0, out.width, out.height); o2.drawImage(cv, 0, 0);
+  o2.fillStyle = STD_COL(std); o2.fillRect(0, 0, 10 * S, out.height);
+  return out;
+}
+let shotBlob = null, shotName = '';
+async function showShot(x) {
+  const cv = await kidImage(x); shotName = `${x.k[0]}.png`;
+  document.getElementById('shotImg').src = cv.toDataURL('image/png');
+  shotBlob = await new Promise(r => cv.toBlob(r, 'image/png'));
+  const file = new File([shotBlob], shotName, { type: 'image/png' });
+  const sb = document.getElementById('shotShare');
+  sb.hidden = !(navigator.canShare && navigator.canShare({ files: [file] }));
+  sb.onclick = () => navigator.share({ files: [file], title: x.k[0] }).catch(() => {});
+  document.getElementById('shot').hidden = false;
+}
+document.getElementById('shotX').onclick = () => { document.getElementById('shot').hidden = true; };
+document.getElementById('shot').onclick = e => { if (e.target.id === 'shot') e.target.hidden = true; };
+document.getElementById('shotSave').onclick = () => { if (!shotBlob) return; const a = document.createElement('a'); a.href = URL.createObjectURL(shotBlob); a.download = shotName; document.body.appendChild(a); a.click(); a.remove(); };
 let kidsShown = [];
 function kidCard(x, i) {
-  const [name, shep, code, yr, std, s, sm, h, t25, t26] = x.k;
+  const [name, shep, code, yr, std, s, sm, h, t25, t26] = x.k, d = dqOf(x.dq);
   return `<div class="kd" style="--z:${STD_COL(std)}">
-    <div class="kd-top"><span class="kd-n">${name}</span><span class="kd-y">${yr ? '第' + yr + '年' : ''}${code ? '・' + code : ''}</span><button class="kd-cp" data-ki="${i}" title="複製這位得少的資料">📋</button></div>
+    <div class="kd-top"><span class="kd-n">${name}</span><span class="kd-y">${yr ? '第' + yr + '年' : ''}${code ? '・' + code : ''}</span>
+      <span class="kd-btns"><button class="kd-cp" data-ki="${i}" title="複製這位得少的資料">📋</button><button class="kd-cp" data-img="${i}" title="做成圖片（可存檔、轉傳）">📷</button><button class="kd-cp kd-ln" data-line="${i}" title="用 LINE 傳送文字">LINE</button></span></div>
     <div class="kd-s">牧養者 <b>${shep || '—'}</b><span class="kd-bap">${bapText(x.k[13])}</span></div>
+    <div class="kd-who">負責弟兄 <b>${d?.lead || '—'}</b>・全時間 <b>${d?.ft || '—'}</b></div>
     <span class="kd-st">${std || '—'}</span>
     <div class="kd-att"><div class="kd-cap"><span>每月平均（${avgSpan(x.k[11])}）</span><span>近 8 週</span></div>
       ${[['主日', s, '#d98a1f'], ['小排', sm, '#2f7fc4'], ['家聚會', h, '#c9506e']].map(([l, v, c], j) => { const a8 = x.k[12] ? x.k[12][j] : null, ct = cat8(a8);
@@ -790,7 +902,10 @@ function openKids(o) {
     return `${o.dqs.length > 1 ? `<div class="kd-sec">${g.n} 大區<small>${g.list.length} 位${d?.lead ? '・負責弟兄 ' + d.lead : ''}</small></div>` : '<div style="height:12px"></div>'}
       <div class="kd-grid">${sorted(g.list).map(x => { kidsShown.push(x); return kidCard(x, kidsShown.length - 1); }).join('')}</div>`; }).join('');
   document.querySelectorAll('#kidsBody [data-ki]').forEach(b => b.onclick = e => { const btn = e.currentTarget; copyText(kidText(kidsShown[+btn.dataset.ki]), btn); });
+  document.querySelectorAll('#kidsBody [data-line]').forEach(b => b.onclick = () => shareLine(kidText(kidsShown[+b.dataset.line])));
+  document.querySelectorAll('#kidsBody [data-img]').forEach(b => b.onclick = () => showShot(kidsShown[+b.dataset.img]));
   document.getElementById('kidsCopy').onclick = e => copyText(kidsListText(o), e.currentTarget);
+  document.querySelectorAll('.kd-cpm [data-m]').forEach(b => b.onclick = e => copyText(meetText(o, +b.dataset.m), e.currentTarget));
   document.getElementById('kidsNote').innerHTML = `最低標準（每月）：第一年家聚會 1 次；第二年再加召會生活（小排＋主日）1 次；第三年家聚會 1、主日 1、小排＋主日合計 2。檢查 2026 年 8–10 月，每個月都要達到。未達標的排在最前面。資料來源：台中得榮少年 207 位綜合資料（${DATA.kidsAsOf}）。`;
   const sec = document.getElementById('kidsPg'); sec.hidden = false; sec.scrollTo({ top: 0 }); document.body.style.overflow = 'hidden';
   document.getElementById('kidsClose').focus();
